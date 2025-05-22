@@ -1,0 +1,1 @@
+.[numpy,sympy,scipy,pandas,uncertainties,matplotlib]

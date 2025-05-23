@@ -4,7 +4,9 @@ def evalf(n):
 
 def speed_converter(value, from_unit='m/s', to_unit='km/h'):
    """
-   Convert between m/s and km/h.
+   Convert between km/s, m/h, m/s and km/h.
+
+   Default (no args): m/s to km/h
    
    Parameters:
    value: numeric value to convert

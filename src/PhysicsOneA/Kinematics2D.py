@@ -1,4 +1,4 @@
-from Lectures.dependencies import *
+from PhysicsOneA.dependencies import *
 
 class Vector:
     def __init__(self, vec):

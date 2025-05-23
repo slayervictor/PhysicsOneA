@@ -1,4 +1,4 @@
-from Lectures.dependencies import *
+from PhysicsOneA.dependencies import *
 def evalf(n):
     return N(n)
 

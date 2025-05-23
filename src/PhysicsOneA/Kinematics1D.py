@@ -1,4 +1,4 @@
-from Lectures.dependencies import *
+from PhysicsOneA.dependencies import *
 
 def solve_suvat(s=None, u=None, v=None, a=None, t=None):
     """

@@ -1,4 +1,4 @@
-from Lectures.dependencies import *
+from dependencies import *
 
 class Vector:
     def __init__(self, vec: List):
@@ -12,7 +12,7 @@ class Vector:
 
 class VectorPair:
     def __init__(self, vec1,vec2):
-        if not isinstance(vec1,list) or not isinstance(vec2,list):
+        if not isinstance(vec1,list) and not isinstance(vec2,list):
             raise TypeError("vec must be a list")
         self.pair = [vec1,vec2]
 

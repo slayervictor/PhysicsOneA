@@ -7,8 +7,6 @@ pkgs.mkShell {
       python-pkgs.jupyter
       python-pkgs.pip
       python-pkgs.sympy
- 
-
     ]))
   ];
 

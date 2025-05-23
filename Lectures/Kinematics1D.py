@@ -1,4 +1,4 @@
-from dependencies import *
+from Lectures.dependencies import *
 
 def solve_suvat(s=None, u=None, v=None, a=None, t=None):
     """
@@ -65,9 +65,3 @@ def solve_suvat(s=None, u=None, v=None, a=None, t=None):
         
     except Exception as e:
         raise ValueError(f"Could not solve equations: {e}")
-
-# Example usage:
-if __name__ == "__main__":
-    print(solve_suvat(u=10, a=2, t=5))  # Find v and s
-    print(solve_suvat(s=100, u=0, v=20))  # Find a and t
-    print(solve_suvat(u=0, a=9.81, t=3))  # Find v and s

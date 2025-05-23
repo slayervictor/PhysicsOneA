@@ -1,4 +1,4 @@
-from dependencies import *
+from Lectures.dependencies import *
 
 class Vector:
     def __init__(self, vec: List):
@@ -9,6 +9,9 @@ class Vector:
     def length(self):
         sumsquare = sum(i**2 for i in self.vec)
         return sqrt(sumsquare)
+    
+    def __str__(self):
+        return f"Vectors: {self.vec}\nLength: {self.length()}"
 
 class VectorPair:
     def __init__(self, vec1,vec2):

@@ -1,2 +1,2 @@
-from sympy import *
+from sympy import *; 
 from typing import List

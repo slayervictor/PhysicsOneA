@@ -2,7 +2,7 @@ from Lectures.dependencies import *
 def evalf(n):
     return N(n)
 
-def converter(value, from_unit='m/s', to_unit='km/h'):
+def speed_converter(value, from_unit='m/s', to_unit='km/h'):
    """
    Convert between m/s and km/h.
    

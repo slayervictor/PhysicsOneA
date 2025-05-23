@@ -24,3 +24,6 @@ def speed_converter(value, from_unit='m/s', to_unit='km/h'):
        return value / 3.6
    else:
        raise ValueError("Units must be 'm/s' or 'km/h'")
+   
+def gravity(decimalPoints=2):
+    return round(9,816012123456, decimalPoints)

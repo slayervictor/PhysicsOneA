@@ -11,8 +11,10 @@ pkgs.mkShell {
   ];
 
   # Workaround: make VSCode's Python extension read the .venv
-  shellHook = ''
-    venv="$(cd $(dirname $(which python)); cd ..; pwd)"
-    ln -Tsf "$venv" .venv
+ shellHook = ''
+    if [ ! -d .venv ]; then
+      python -m venv .venv
+    fi
+    source .venv/bin/activate
   '';
 }

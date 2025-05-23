@@ -18,6 +18,3 @@ class VectorPair:
         if not isinstance(vec1,list) and not isinstance(vec2,list):
             raise TypeError("vec must be a list")
         self.pair = [vec1,vec2]
-
-def evalf(n):
-    return N(n)

@@ -2,10 +2,44 @@ from Lectures.dependencies import *
 
 def solve_suvat(s=None, u=None, v=None, a=None, t=None):
     """
-    Solve SUVAT equations using SymPy symbolic math.
-    
-    Provide any 3 known values to calculate the remaining 2.
-    Returns a dictionary with all 5 values.
+    Solves the SUVAT equations for uniformly accelerated motion using symbolic computation (SymPy).
+
+    SUVAT equations relate the following five variables in uniformly accelerated motion:
+        - s: displacement
+        - u: initial velocity
+        - v: final velocity
+        - a: acceleration
+        - t: time
+
+    You must provide **exactly three known values**, and the function will compute the remaining two.
+
+    Parameters:
+        s (float or None): Displacement (in meters). Optional.
+        u (float or None): Initial velocity (in m/s). Optional.
+        v (float or None): Final velocity (in m/s). Optional.
+        a (float or None): Acceleration (in m/s²). Optional.
+        t (float or None): Time (in seconds). Optional.
+
+    Returns:
+        dict: A dictionary containing all five variables {'s': float, 'u': float, 'v': float, 'a': float, 't': float},
+              with computed values filled in for the ones that were originally unspecified.
+
+    Raises:
+        ValueError: If not exactly three values are provided.
+        ValueError: If the system of equations cannot be solved (e.g., inconsistent or unsolvable values).
+
+    Notes:
+        - This function uses three standard SUVAT equations:
+            1. v = u + at
+            2. s = ut + (1/2)at²
+            3. v² = u² + 2as
+        - The function uses SymPy to solve these equations symbolically.
+        - If multiple solutions exist (e.g., time t could be positive or negative), the function selects the positive value if applicable.
+        - All returned values are converted to floats.
+
+    Example:
+        >>> solve_suvat(u=0, a=2, t=3)
+        {'s': 9.0, 'u': 0.0, 'v': 6.0, 'a': 2.0, 't': 3.0}
     """
     # Define symbols
     s_sym, u_sym, v_sym, a_sym, t_sym = symbols('s u v a t', real=True)

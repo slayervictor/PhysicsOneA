@@ -243,7 +243,7 @@ class Projectile:
         return (
             f"--- Projectile Info ---\n"
             f"Initial speed (v0): {self.v0:.4f} m/s\n"
-            f"Launch angle (theta): {round(evalf(radian_to_degree(self.theta)),2)}°\n"
+            f"Launch angle (theta): {round(N(radian_to_degree(self.theta)),2)}°\n"
             f"Horizontal velocity (v0x): {self.v0x:.4f} m/s\n"
             f"Vertical velocity (v0y): {self.v0y:.4f} m/s\n"
             f"Initial height (y0): {self.y0:.4f} m\n"
@@ -424,11 +424,28 @@ class CircularMotion:
         """
         Circular motion handler.
 
+        Parameters:
+            r (float or sympy expression): The radius of the circular path [in meters].
+            T (float or sympy expression): The period — the time it takes to complete one full revolution [in seconds].
+            v (float or sympy expression): The tangential (linear) velocity of the object [in meters per second].
+            v_func (sympy expression): A symbolic expression representing the velocity as a function of time, v(t).
+                                       Required to compute tangential acceleration a_T = d|v|/dt.
+
         You can provide the following combinations:
 
-        - r and T: Used to calculate v = (2πr)/T
-        - v and r: Used to calculate a_c = v² / r
-        - v_func: A function of time v(t), used to calculate a_T = d|v|/dt
+        - r and T: Used to compute the tangential velocity using the formula:
+              v = (2πr) / T
+
+        - v and r: Used to compute the centripetal acceleration using the formula:
+              a_c = v² / r
+
+        - v_func: A function of time, used to compute the tangential acceleration:
+              a_T = d|v(t)| / dt
+
+        Notes:
+            - If only r and T are given, v is computed automatically.
+            - If v is given directly, it will be used instead of computing it from r and T.
+            - You can leave v_func out unless you're specifically modeling acceleration with time-varying speed.
         """
         self.r = r
         self.T = T

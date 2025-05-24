@@ -1,8 +1,5 @@
 from PhysicsOneA.dependencies import *
 
-def evalf(n):
-    return N(n)
-
 def speed_converter(value, from_unit='m/s', to_unit='km/h'):
    """
    Convert between km/s, m/h, m/s and km/h.

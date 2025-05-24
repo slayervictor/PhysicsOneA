@@ -102,44 +102,33 @@ def solve_suvat(s=None, u=None, v=None, a=None, t=None):
                     solution = sol
                     break
         
-        # Build result using uncertainty-aware computation
+        # Build result dictionary with computed values
         result = {}
         
-        # For known values, use original inputs (preserving uncertainties)
-        if s_norm is not None:
-            result['s'] = maybe_simplify(s_norm, preserve_uncertainty)
-        else:
-            # Compute s with uncertainty propagation
-            s_val = u_norm * t_norm + 0.5 * a_norm * t_norm**2
-            result['s'] = maybe_simplify(s_val, preserve_uncertainty)
+        # Use SymPy solution values, but reconstruct with uncertainty propagation
+        s_final = ufloat(float(solution.get(s_sym, get_nominal(s_norm))), 0) if s_norm is None else s_norm
+        u_final = ufloat(float(solution.get(u_sym, get_nominal(u_norm))), 0) if u_norm is None else u_norm  
+        v_final = ufloat(float(solution.get(v_sym, get_nominal(v_norm))), 0) if v_norm is None else v_norm
+        a_final = ufloat(float(solution.get(a_sym, get_nominal(a_norm))), 0) if a_norm is None else a_norm
+        t_final = ufloat(float(solution.get(t_sym, get_nominal(t_norm))), 0) if t_norm is None else t_norm
+        
+        # Recompute unknown values using uncertainty-aware equations to get proper error propagation
+        if s_norm is None and u_final is not None and a_final is not None and t_final is not None:
+            s_final = u_final * t_final + 0.5 * a_final * t_final**2
+        if u_norm is None and v_final is not None and a_final is not None and t_final is not None:
+            u_final = v_final - a_final * t_final
+        if v_norm is None and u_final is not None and a_final is not None and t_final is not None:
+            v_final = u_final + a_final * t_final
+        if a_norm is None and v_final is not None and u_final is not None and t_final is not None:
+            a_final = (v_final - u_final) / t_final
+        if t_norm is None and v_final is not None and u_final is not None and a_final is not None:
+            t_final = (v_final - u_final) / a_final
             
-        if u_norm is not None:
-            result['u'] = maybe_simplify(u_norm, preserve_uncertainty)
-        else:
-            # u = v - at
-            u_val = v_norm - a_norm * t_norm
-            result['u'] = maybe_simplify(u_val, preserve_uncertainty)
-            
-        if v_norm is not None:
-            result['v'] = maybe_simplify(v_norm, preserve_uncertainty)
-        else:
-            # v = u + at
-            v_val = u_norm + a_norm * t_norm
-            result['v'] = maybe_simplify(v_val, preserve_uncertainty)
-            
-        if a_norm is not None:
-            result['a'] = maybe_simplify(a_norm, preserve_uncertainty)
-        else:
-            # a = (v - u) / t
-            a_val = (v_norm - u_norm) / t_norm
-            result['a'] = maybe_simplify(a_val, preserve_uncertainty)
-            
-        if t_norm is not None:
-            result['t'] = maybe_simplify(t_norm, preserve_uncertainty)
-        else:
-            # t = (v - u) / a
-            t_val = (v_norm - u_norm) / a_norm
-            result['t'] = maybe_simplify(t_val, preserve_uncertainty)
+        result['s'] = maybe_simplify(s_final, preserve_uncertainty)
+        result['u'] = maybe_simplify(u_final, preserve_uncertainty)
+        result['v'] = maybe_simplify(v_final, preserve_uncertainty)
+        result['a'] = maybe_simplify(a_final, preserve_uncertainty)
+        result['t'] = maybe_simplify(t_final, preserve_uncertainty)
         
         return result
         

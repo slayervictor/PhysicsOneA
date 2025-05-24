@@ -324,8 +324,8 @@ def solve_projectile_motion(v0=None, theta=None, t=None, x=None, y=None, y0=0, g
         dict with keys: v0, theta (deg), v0x, v0y, t, x, y, vx, vy
     """
     v0_sym, theta_sym, t_sym, x_sym, y_sym = symbols("v0 theta t x y", real=True)
-    v0x = v0_sym * cos(theta_sym)
-    v0y = v0_sym * sin(theta_sym)
+    v0x = v0_sym * math.cos(theta_sym)
+    v0y = v0_sym * math.sin(theta_sym)
     
     eqs = []
 
@@ -359,14 +359,14 @@ def solve_projectile_motion(v0=None, theta=None, t=None, x=None, y=None, y0=0, g
     all_values = {**knowns, **sol}
     v0_val = float(all_values[v0_sym])
     theta_rad = float(all_values[theta_sym])
-    vx_val = float(v0_val * cos(theta_rad))
-    vy_val = float(v0_val * sin(theta_rad) - g * all_values.get(t_sym, t))
+    vx_val = float(v0_val * math.cos(theta_rad))
+    vy_val = float(v0_val * math.sin(theta_rad) - g * all_values.get(t_sym, t))
 
     return {
         "v0": v0_val,
         "theta (deg)": radian_to_degree(theta_rad),
-        "v0x": float(v0_val * cos(theta_rad)),
-        "v0y": float(v0_val * sin(theta_rad)),
+        "v0x": float(v0_val * math.cos(theta_rad)),
+        "v0y": float(v0_val * math.sin(theta_rad)),
         "t": float(all_values.get(t_sym, t)),
         "x": float(all_values.get(x_sym, x)),
         "y": float(all_values.get(y_sym, y)),

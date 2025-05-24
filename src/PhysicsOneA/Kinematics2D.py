@@ -419,4 +419,58 @@ class Projectile:
         """
         return self.y0 + tan(self.theta) * x - (self.g / (2 * self.v0**2 * cos(self.theta)**2)) * x**2
 
+class CircularMotion:
+    def __init__(self, *, r=None, T=None, v=None, v_func=None):
+        """
+        Circular motion handler.
 
+        You can provide the following combinations:
+
+        - r and T: Used to calculate v = (2πr)/T
+        - v and r: Used to calculate a_c = v² / r
+        - v_func: A function of time v(t), used to calculate a_T = d|v|/dt
+        """
+        self.r = r
+        self.T = T
+        self.v = v
+        self.v_func = v_func
+        self.t = symbols('t')
+
+        # Automatically compute v if r and T are provided
+        if self.v is None and self.r is not None and self.T is not None:
+            self.v = Float((2 * pi * self.r) / self.T)
+
+    def velocity(self):
+        """
+        Returns the velocity v = (2πr)/T if not directly provided.
+        """
+        if self.v is not None:
+            return self.v
+        elif self.r is not None and self.T is not None:
+            return Float((2 * pi * self.r) / self.T)
+        else:
+            raise ValueError("Missing values: Provide either v, or both r and T.")
+
+    def centripetal_acceleration(self):
+        """
+        Returns the centripetal acceleration: a_c = v² / r
+        """
+        v = self.velocity()
+        if self.r is None:
+            raise ValueError("Radius r is required to compute centripetal acceleration.")
+        return Float(v**2 / self.r)
+
+    def tangential_acceleration(self):
+        """
+        Returns the tangential acceleration: a_T = d|v|/dt, for a given v(t).
+        """
+        if self.v_func is None:
+            raise ValueError("A time-dependent velocity function v(t) is required for tangential acceleration.")
+        return diff(abs(self.v_func), self.t)
+
+    def __str__(self):
+        v_str = f"v = {self.velocity()} m/s" if self.v or (self.r and self.T) else "v = ?"
+        ac_str = f"a_c = {self.centripetal_acceleration()} m/s²" if self.r else "a_c = ?"
+        at_str = f"a_T = {self.tangential_acceleration()} m/s²" if self.v_func else "a_T = ?"
+
+        return f"--- Circular Motion ---\n{v_str}\n{ac_str}\n{at_str}"

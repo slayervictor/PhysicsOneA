@@ -453,13 +453,32 @@ class CircularMotion:
         self.v_func = v_func
         self.t = symbols('t')
 
-        # Automatically compute v if r and T are provided
-        if self.v is None and self.r is not None and self.T is not None:
-            self.v = Float((2 * pi * self.r) / self.T)
+        # Automatically compute tangential velocity from radius and period, if not given
+        if self.v is None:
+            if self.r is not None and self.T is not None:
+                self.v = Float((2 * pi * self.r) / self.T)
+            elif self.r is None and self.T is not None:
+                raise ValueError("Cannot compute velocity: radius (r) is missing.")
+            elif self.r is not None and self.T is None:
+                raise ValueError("Cannot compute velocity: period (T) is missing.")
+
 
     def velocity(self):
         """
-        Returns the velocity v = (2πr)/T if not directly provided.
+        Returns the tangential velocity of the object.
+
+        Formula:
+            v = (2πr) / T
+
+        Returns:
+            float or sympy expression: The velocity v [meters/second, m/s]
+
+        Raises:
+            ValueError: If neither v nor both r and T are provided.
+
+        Notes:
+            - r is the radius of the circular path [m]
+            - T is the period of revolution [s]
         """
         if self.v is not None:
             return self.v
@@ -470,7 +489,20 @@ class CircularMotion:
 
     def centripetal_acceleration(self):
         """
-        Returns the centripetal acceleration: a_c = v² / r
+        Returns the centripetal acceleration acting on the object.
+
+        Formula:
+            a_c = v² / r
+
+        Returns:
+            float or sympy expression: The centripetal acceleration a_c [meters/second², m/s²]
+
+        Raises:
+            ValueError: If radius r is not provided.
+
+        Notes:
+            - v is the tangential velocity [m/s]
+            - r is the radius of the circular path [m]
         """
         v = self.velocity()
         if self.r is None:
@@ -479,15 +511,50 @@ class CircularMotion:
 
     def tangential_acceleration(self):
         """
-        Returns the tangential acceleration: a_T = d|v|/dt, for a given v(t).
+        Returns the tangential acceleration of the object over time.
+
+        Formula:
+            a_T = d|v(t)| / dt
+
+        Returns:
+            sympy expression: The derivative of the speed function with respect to time [m/s²]
+
+        Raises:
+            ValueError: If no time-dependent velocity function v(t) is provided.
+
+        Notes:
+            - v(t) must be a symbolic function of time [m/s]
+            - Result is symbolic and represents instantaneous change in speed
         """
         if self.v_func is None:
             raise ValueError("A time-dependent velocity function v(t) is required for tangential acceleration.")
         return diff(abs(self.v_func), self.t)
 
     def __str__(self):
-        v_str = f"v = {self.velocity()} m/s" if self.v or (self.r and self.T) else "v = ?"
-        ac_str = f"a_c = {self.centripetal_acceleration()} m/s²" if self.r else "a_c = ?"
-        at_str = f"a_T = {self.tangential_acceleration()} m/s²" if self.v_func else "a_T = ?"
+        try:
+            v_val = self.velocity()
+            v_str = f"v = {round(float(v_val), 4)} m/s"
+        except:
+            v_str = "v = ?"
 
-        return f"--- Circular Motion ---\n{v_str}\n{ac_str}\n{at_str}"
+        try:
+            ac_val = self.centripetal_acceleration()
+            ac_str = f"centripetal acceleration = {round(float(ac_val), 4)} m/s²"
+        except:
+            ac_str = "centripetal acceleration = ?"
+
+        try:
+            at_val = self.tangential_acceleration()
+            at_str = f"tangential acceleration = {at_val} m/s²"
+        except:
+            at_str = "tangential acceleration = ?"
+
+        return (
+            "--- Circular Motion ---\n"
+            f"Radius r: {self.r} m\n"
+            f"Period T: {self.T} s\n"
+            f"{v_str}\n"
+            f"{ac_str}\n"
+            f"{at_str}"
+        )
+

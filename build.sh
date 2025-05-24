@@ -8,3 +8,5 @@ ls -la dist/
 
 echo "To upload: twine upload dist/*"
 echo "TestPyPI: twine upload --repository testpypi dist/*"
+echo "Now installing built package"
+pip install -e .

@@ -26,7 +26,7 @@ def speed_converter(value, from_unit='m/s', to_unit='km/h'):
        raise ValueError("Units must be 'm/s' or 'km/h'")
    
 def gravity(decimalPoints=2):
-    return round(9,816012123456, decimalPoints)
+    return round(9.816012123456, decimalPoints)
 
 def radian_to_degree(angle_rad):
     return deg(angle_rad)

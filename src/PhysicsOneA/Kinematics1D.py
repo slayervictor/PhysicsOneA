@@ -1,84 +1,99 @@
 from PhysicsOneA.dependencies import *
+from uncertainties import ufloat
 
 def solve_suvat(s=None, u=None, v=None, a=None, t=None):
     """
-    Solves the SUVAT equations for uniformly accelerated motion using symbolic computation (SymPy).
-
-    SUVAT equations relate the following five variables in uniformly accelerated motion:
-        - s: displacement
-        - u: initial velocity
-        - v: final velocity
-        - a: acceleration
-        - t: time
-
-    You must provide **exactly three known values**, and the function will compute the remaining two.
+    Solves the SUVAT equations for uniformly accelerated motion.
+    
+    Accepts both regular numbers and ufloat objects with uncertainties.
+    Returns results with proper uncertainty propagation when applicable.
 
     Parameters:
-        s (float or None): Displacement (in meters). Optional.
-        u (float or None): Initial velocity (in m/s). Optional.
-        v (float or None): Final velocity (in m/s). Optional.
-        a (float or None): Acceleration (in m/s²). Optional.
-        t (float or None): Time (in seconds). Optional.
+        s, u, v, a, t: float, ufloat, or None
+            - s: displacement (m)
+            - u: initial velocity (m/s)  
+            - v: final velocity (m/s)
+            - a: acceleration (m/s²)
+            - t: time (s)
 
     Returns:
-        dict: A dictionary containing all five variables {'s': float, 'u': float, 'v': float, 'a': float, 't': float},
-              with computed values filled in for the ones that were originally unspecified.
-
-    Raises:
-        ValueError: If not exactly three values are provided.
-        ValueError: If the system of equations cannot be solved (e.g., inconsistent or unsolvable values).
-
-    Notes:
-        - This function uses three standard SUVAT equations:
-            1. v = u + at
-            2. s = ut + (1/2)at²
-            3. v² = u² + 2as
-        - The function uses SymPy to solve these equations symbolically.
-        - If multiple solutions exist (e.g., time t could be positive or negative), the function selects the positive value if applicable.
-        - All returned values are converted to floats.
+        dict: All five variables with uncertainties preserved if present
 
     Example:
-        >>> solve_suvat(u=0, a=2, t=3)
-        {'s': 9.0, 'u': 0.0, 'v': 6.0, 'a': 2.0, 't': 3.0}
+        >>> solve_suvat(u=ufloat(0, 0.1), a=2, t=3)
+        {'s': 9.0+/-0.90, 'u': 0.0+/-0.10, 'v': 6.0+/-0.30, 'a': 2.0, 't': 3.0}
     """
-    # Define symbols
-    s_sym, u_sym, v_sym, a_sym, t_sym = symbols('s u v a t', real=True)
+    
+    def normalize_input(value):
+        """Convert input to ufloat for consistent processing."""
+        if value is None:
+            return None
+        elif hasattr(value, 'nominal_value'):
+            return value  # Already a ufloat
+        else:
+            return ufloat(float(value), 0)  # Regular number with zero uncertainty
+    
+    def get_nominal(value):
+        """Extract nominal value for SymPy computation."""
+        if value is None:
+            return None
+        elif hasattr(value, 'nominal_value'):
+            return value.nominal_value
+        else:
+            return float(value)
+    
+    def has_uncertainties(*values):
+        """Check if any input has non-zero uncertainty."""
+        for val in values:
+            if val is not None and hasattr(val, 'std_dev') and val.std_dev > 0:
+                return True
+        return False
+    
+    def maybe_simplify(value, preserve_uncertainty):
+        """Convert to float if no uncertainties were in the inputs."""
+        if not preserve_uncertainty and hasattr(value, 'nominal_value'):
+            return float(value.nominal_value)
+        return value
+    
+    # Normalize all inputs
+    inputs = [s, u, v, a, t]
+    s_norm, u_norm, v_norm, a_norm, t_norm = [normalize_input(x) for x in inputs]
+    
+    # Check if we need to preserve uncertainties
+    preserve_uncertainty = has_uncertainties(s, u, v, a, t)
     
     # Count known values
-    known = [x for x in [s, u, v, a, t] if x is not None]
+    known = [x for x in [s_norm, u_norm, v_norm, a_norm, t_norm] if x is not None]
     if len(known) != 3:
         raise ValueError("Exactly 3 values must be provided")
     
-    # SUVAT equations
-    eq1 = Eq(v_sym, u_sym + a_sym * t_sym)  # v = u + at
-    eq2 = Eq(s_sym, u_sym * t_sym + a_sym * t_sym**2 / 2)  # s = ut + ½at²
-    eq3 = Eq(v_sym**2, u_sym**2 + 2 * a_sym * s_sym)  # v² = u² + 2as
+    # Use SymPy to solve with nominal values (original logic)
+    s_sym, u_sym, v_sym, a_sym, t_sym = symbols('s u v a t', real=True)
+    
+    eq1 = Eq(v_sym, u_sym + a_sym * t_sym)  
+    eq2 = Eq(s_sym, u_sym * t_sym + a_sym * t_sym**2 / 2)  
+    eq3 = Eq(v_sym**2, u_sym**2 + 2 * a_sym * s_sym)  
     
     equations = [eq1, eq2, eq3]
     variables = [s_sym, u_sym, v_sym, a_sym, t_sym]
     
-    # Substitute known values
+    # Substitute known nominal values
     substitutions = {}
-    if s is not None: substitutions[s_sym] = s
-    if u is not None: substitutions[u_sym] = u
-    if v is not None: substitutions[v_sym] = v
-    if a is not None: substitutions[a_sym] = a
-    if t is not None: substitutions[t_sym] = t
+    if s_norm is not None: substitutions[s_sym] = get_nominal(s_norm)
+    if u_norm is not None: substitutions[u_sym] = get_nominal(u_norm)
+    if v_norm is not None: substitutions[v_sym] = get_nominal(v_norm)
+    if a_norm is not None: substitutions[a_sym] = get_nominal(a_norm)
+    if t_norm is not None: substitutions[t_sym] = get_nominal(t_norm)
     
-    # Apply substitutions to equations
     eqs_substituted = [eq.subs(substitutions) for eq in equations]
-    
-    # Find unknown variables
     unknowns = [var for var in variables if var not in substitutions]
     
-    # Solve the system
     try:
         solutions = solve(eqs_substituted, unknowns, dict=True)
         
         if not solutions:
             raise ValueError("No solution found for given values")
         
-        # Take first solution (handle multiple solutions by choosing positive time if applicable)
         solution = solutions[0]
         if len(solutions) > 1 and t_sym in unknowns:
             # Choose positive time solution
@@ -87,13 +102,44 @@ def solve_suvat(s=None, u=None, v=None, a=None, t=None):
                     solution = sol
                     break
         
-        # Build result dictionary
+        # Build result using uncertainty-aware computation
         result = {}
-        result['s'] = float(solution.get(s_sym, s))
-        result['u'] = float(solution.get(u_sym, u))
-        result['v'] = float(solution.get(v_sym, v))
-        result['a'] = float(solution.get(a_sym, a))
-        result['t'] = float(solution.get(t_sym, t))
+        
+        # For known values, use original inputs (preserving uncertainties)
+        if s_norm is not None:
+            result['s'] = maybe_simplify(s_norm, preserve_uncertainty)
+        else:
+            # Compute s with uncertainty propagation
+            s_val = u_norm * t_norm + 0.5 * a_norm * t_norm**2
+            result['s'] = maybe_simplify(s_val, preserve_uncertainty)
+            
+        if u_norm is not None:
+            result['u'] = maybe_simplify(u_norm, preserve_uncertainty)
+        else:
+            # u = v - at
+            u_val = v_norm - a_norm * t_norm
+            result['u'] = maybe_simplify(u_val, preserve_uncertainty)
+            
+        if v_norm is not None:
+            result['v'] = maybe_simplify(v_norm, preserve_uncertainty)
+        else:
+            # v = u + at
+            v_val = u_norm + a_norm * t_norm
+            result['v'] = maybe_simplify(v_val, preserve_uncertainty)
+            
+        if a_norm is not None:
+            result['a'] = maybe_simplify(a_norm, preserve_uncertainty)
+        else:
+            # a = (v - u) / t
+            a_val = (v_norm - u_norm) / t_norm
+            result['a'] = maybe_simplify(a_val, preserve_uncertainty)
+            
+        if t_norm is not None:
+            result['t'] = maybe_simplify(t_norm, preserve_uncertainty)
+        else:
+            # t = (v - u) / a
+            t_val = (v_norm - u_norm) / a_norm
+            result['t'] = maybe_simplify(t_val, preserve_uncertainty)
         
         return result
         

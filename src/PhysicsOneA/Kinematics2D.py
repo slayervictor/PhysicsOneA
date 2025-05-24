@@ -525,6 +525,10 @@ class CircularMotion:
         Notes:
             - v(t) must be a symbolic function of time [m/s]
             - Result is symbolic and represents instantaneous change in speed
+            
+            function example:
+            t = symbols('t')  # time symbol in seconds
+            v_func = 5 * sin(t)
         """
         if self.v_func is None:
             raise ValueError("A time-dependent velocity function v(t) is required for tangential acceleration.")
@@ -549,12 +553,156 @@ class CircularMotion:
         except:
             at_str = "tangential acceleration = ?"
 
+        try:
+            T_crit = self.critical_period_for_weightlessness()
+            T_crit_hours = float(T_crit) / 3600
+            crit_str = f"Critical period for weightlessness: {T_crit:.2f} seconds (~{T_crit_hours:.2f} hours)"
+        except:
+            crit_str = "Critical period for weightlessness: ?"
+
         return (
             "--- Circular Motion ---\n"
             f"Radius r: {self.r} m\n"
             f"Period T: {self.T} s\n"
             f"{v_str}\n"
             f"{ac_str}\n"
-            f"{at_str}"
+            f"{at_str}\n"
+            f"{crit_str}"
         )
 
+    
+    def critical_period_for_weightlessness(self, g=gravity()):
+        """
+        Computes the critical period T [s] at which the centripetal acceleration equals g.
+
+        This is the period at which a person at the equator (or other radius r) would feel weightless
+        due to the required centripetal force matching gravitational acceleration.
+
+        Formula:
+            T = sqrt((4 * π² * r) / g)
+
+        Parameters:
+            g (float): Gravitational acceleration [m/s²]. Default is 9.8.
+
+        Returns:
+            float: The critical period T in seconds.
+
+        Raises:
+            ValueError: If radius r is not provided.
+        """
+        if self.r is None:
+            raise ValueError("Radius r is required to compute the critical period.")
+        
+        T_critical = sqrt((4 * pi**2 * self.r) / g)
+        return Float(T_critical)
+
+class RelativeMotion:
+    def __init__(self, *,
+                 v_ps_prime=None, v_sprime_s=None,
+                 a_ps_prime=None, a_sprime_s=None,
+                 velocity_vectors=None,
+                 acceleration_vectors=None):
+        """
+        Initializes a relative motion system.
+
+        You may specify relative velocity and/or acceleration using either:
+            1. Named arguments:
+                - v_ps_prime: Velocity of point P relative to frame S′ [Vector or list of floats]
+                - v_sprime_s: Velocity of frame S′ relative to frame S [Vector or list of floats]
+                - a_ps_prime: Acceleration of point P relative to frame S′ [Vector or list of floats]
+                - a_sprime_s: Acceleration of frame S′ relative to frame S [Vector or list of floats]
+            
+            OR
+
+            2. Tuple inputs:
+                - velocity_vectors=(v_ps_prime, v_sprime_s)
+                - acceleration_vectors=(a_ps_prime, a_sprime_s)
+
+        The resulting object allows you to compute:
+            - v_PS = v_PS′ + v_S′S
+            - a_PS = a_PS′ + a_S′S
+        """
+        def ensure_vector(v):
+            if isinstance(v, Vector):
+                return v
+            elif isinstance(v, list):
+                return Vector(v)
+            else:
+                raise TypeError("Expected a Vector or list.")
+
+        # Handle velocity input
+        if velocity_vectors:
+            self.v_ps_prime = ensure_vector(velocity_vectors[0])
+            self.v_sprime_s = ensure_vector(velocity_vectors[1])
+        else:
+            self.v_ps_prime = ensure_vector(v_ps_prime) if v_ps_prime is not None else None
+            self.v_sprime_s = ensure_vector(v_sprime_s) if v_sprime_s is not None else None
+
+        # Handle acceleration input
+        if acceleration_vectors:
+            self.a_ps_prime = ensure_vector(acceleration_vectors[0])
+            self.a_sprime_s = ensure_vector(acceleration_vectors[1])
+        else:
+            self.a_ps_prime = ensure_vector(a_ps_prime) if a_ps_prime is not None else None
+            self.a_sprime_s = ensure_vector(a_sprime_s) if a_sprime_s is not None else None
+
+    def relative_velocity(self):
+        """
+        Calculates the velocity of point P relative to frame S.
+
+        Formula:
+            v_PS = v_PS′ + v_S′S
+
+        Returns:
+            sympy Matrix: Resulting relative velocity vector [m/s]
+
+        Raises:
+            ValueError: If required velocity vectors are missing.
+        """
+        if self.v_ps_prime is None or self.v_sprime_s is None:
+            raise ValueError("Both v_ps_prime and v_sprime_s must be provided.")
+        return self.v_ps_prime.getVector() + self.v_sprime_s.getVector()
+
+    def relative_acceleration(self):
+        """
+        Calculates the acceleration of point P relative to frame S.
+
+        Formula:
+            a_PS = a_PS′ + a_S′S
+
+        Returns:
+            sympy Matrix: Resulting relative acceleration vector [m/s²]
+
+        Raises:
+            ValueError: If required acceleration vectors are missing.
+        """
+        if self.a_ps_prime is None or self.a_sprime_s is None:
+            raise ValueError("Both a_ps_prime and a_sprime_s must be provided.")
+        return self.a_ps_prime.getVector() + self.a_sprime_s.getVector()
+
+    def __str__(self):
+        """
+        Returns a formatted string representation of the relative motion configuration,
+        including computed relative velocity and acceleration if possible.
+        """
+        lines = ["--- Relative Motion ---"]
+        if self.v_ps_prime and self.v_sprime_s:
+            v_result = self.relative_velocity()
+            lines += [
+                f"v_PS′ = {self.v_ps_prime.getVector()}",
+                f"v_S′S = {self.v_sprime_s.getVector()}",
+                f"=> v_PS = {v_result}"
+            ]
+        else:
+            lines.append("Velocity data incomplete.")
+
+        if self.a_ps_prime and self.a_sprime_s:
+            a_result = self.relative_acceleration()
+            lines += [
+                f"a_PS′ = {self.a_ps_prime.getVector()}",
+                f"a_S′S = {self.a_sprime_s.getVector()}",
+                f"=> a_PS = {a_result}"
+            ]
+        else:
+            lines.append("Acceleration data incomplete.")
+        return "\n".join(lines)

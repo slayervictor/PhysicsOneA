@@ -85,7 +85,7 @@ class VectorPair:
         angle_rad = atan(Vy / Vx)
 
         # Convert to degrees for readability
-        return degrees(N(angle_rad))
+        return radian_to_degree(N(angle_rad))
 
     def __str__(self):
         pair = self.getPair()
@@ -178,7 +178,7 @@ class Projectile:
         return (
             f"--- Projectile Info ---\n"
             f"Initial speed (v0): {self.v0:.2f} m/s\n"
-            f"Launch angle (theta): {degrees(self.theta):.2f}°\n"
+            f"Launch angle (theta): {radian_to_degree(self.theta):.2f}°\n"
             f"Horizontal velocity (v0x): {self.v0x:.2f} m/s\n"
             f"Vertical velocity (v0y): {self.v0y:.2f} m/s\n"
             f"Initial height (y0): {self.y0:.2f} m\n"
@@ -336,7 +336,7 @@ def solve_projectile_motion(v0=None, theta=None, t=None, x=None, y=None, y0=0, g
     
     knowns = {}
     if v0 is not None: knowns[v0_sym] = v0
-    if theta is not None: knowns[theta_sym] = radians(theta)
+    if theta is not None: knowns[theta_sym] = degree_to_radian(theta)
     if t is not None: knowns[t_sym] = t
     if x is not None: knowns[x_sym] = x
     if y is not None: knowns[y_sym] = y
@@ -364,7 +364,7 @@ def solve_projectile_motion(v0=None, theta=None, t=None, x=None, y=None, y0=0, g
 
     return {
         "v0": v0_val,
-        "theta (deg)": degrees(theta_rad),
+        "theta (deg)": radian_to_degree(theta_rad),
         "v0x": float(v0_val * cos(theta_rad)),
         "v0y": float(v0_val * sin(theta_rad)),
         "t": float(all_values.get(t_sym, t)),

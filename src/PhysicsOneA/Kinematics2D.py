@@ -176,14 +176,20 @@ class Projectile:
 
     def __str__(self):
         return (
-            f"v0: {self.v0:.2f} m/s\n"
-            f"theta: {degrees(self.theta):.2f}° (degrees)\n"
-            f"v0x: {self.v0x:.2f} m/s\n"
-            f"v0y: {self.v0y:.2f} m/s\n"
-            f"y0: {self.y0:.2f} m\n"
-            f"g: {self.g:.2f} m/s²\n"
-            f"time of flight: {self.time_of_flight():.2f} s"
+            f"--- Projectile Info ---\n"
+            f"Initial speed (v0): {self.v0:.2f} m/s\n"
+            f"Launch angle (theta): {degrees(self.theta):.2f}°\n"
+            f"Horizontal velocity (v0x): {self.v0x:.2f} m/s\n"
+            f"Vertical velocity (v0y): {self.v0y:.2f} m/s\n"
+            f"Initial height (y0): {self.y0:.2f} m\n"
+            f"Gravity (g): {self.g:.2f} m/s²\n"
+            f"\n--- Derived Quantities ---\n"
+            f"Time of flight (flat): {self.time_of_flight():.2f} s\n"
+            f"Time of flight (realistic): {self.time_of_flight_full():.2f} s\n"
+            f"Maximum height: {self.max_height():.2f} m\n"
+            f"Range: {self.range():.2f} m"
         )
+
 
 
     def time_of_flight(self):
@@ -213,10 +219,25 @@ class Projectile:
     def range(self):
         return (self.v0 ** 2) * sin(2 * self.theta) / self.g
 
-    def position(self, t):
-        x = self.v0x * t
-        y = self.y0 + self.v0y * t - 0.5 * self.g * t ** 2
-        return (x, y)
+    def position(self, t, allow_outside=False):
+        """
+        Returns the position (x, y) of the projectile at time t.
+
+        Parameters:
+            t (float): Time in seconds
+            allow_outside (bool): If False, raise error if t is outside flight time
+
+        Returns:
+            tuple: (x, y) in meters
+
+        Raises:
+            ValueError: If t is outside [0, time_of_flight_full()] and allow_outside is False
+        """
+        t_max = self.time_of_flight_full()
+        if not allow_outside and (t < 0 or t > t_max):
+            raise ValueError(f"Time {t} s is outside of projectile's flight time [0, {t_max:.2f}]")
+
+        return self.position(t)
 
     def velocity(self, t):
         vx = self.v0x
@@ -240,5 +261,115 @@ class Projectile:
         plt.grid()
         plt.show()
 
+    def plot_y_over_time(self, steps=100):
+        t_max = self.time_of_flight_full()
+        times = [i * t_max / steps for i in range(steps + 1)]
+        ys = [self.position(t)[1] for t in times]
+
+        plt.plot(times, ys)
+        plt.xlabel("Time (s)")
+        plt.ylabel("Height y(t) (m)")
+        plt.title("Projectile Height Over Time")
+        plt.grid()
+        plt.show()
+
+    def plot_x_over_time(self, steps=100):
+        t_max = self.time_of_flight_full()
+        times = [i * t_max / steps for i in range(steps + 1)]
+        xs = [self.position(t)[0] for t in times]
+
+        plt.plot(times, xs)
+        plt.xlabel("Time (s)")
+        plt.ylabel("Horizontal Distance x(t) (m)")
+        plt.title("Projectile Horizontal Position Over Time")
+        plt.grid()
+        plt.show()
+
+    def plot_velocity_over_time(self, steps=100):
+        t_max = self.time_of_flight_full()
+        times = [i * t_max / steps for i in range(steps + 1)]
+        vxs = [self.velocity(t)[0] for t in times]
+        vys = [self.velocity(t)[1] for t in times]
+
+        plt.plot(times, vxs, label="vx(t)")
+        plt.plot(times, vys, label="vy(t)")
+        plt.xlabel("Time (s)")
+        plt.ylabel("Velocity (m/s)")
+        plt.title("Projectile Velocity Components Over Time")
+        plt.legend()
+        plt.grid()
+        plt.show()
+
+
     def get_initial_vector(self):
         return Vector([self.v0x, self.v0y])
+
+def solve_projectile_motion(v0=None, theta=None, t=None, x=None, y=None, y0=0, g=gravity()):
+    """
+    Solves projectile motion equations given known parameters.
+    
+    You must provide at least 3 known values among (v0, theta, t, x, y),
+    and optionally y0 and g. The function returns a dict of all others.
+
+    Parameters:
+        v0 (float): Initial speed in m/s
+        theta (float): Launch angle in degrees
+        t (float): Time in seconds
+        x (float): Horizontal position
+        y (float): Vertical position
+        y0 (float): Launch height (default 0)
+        g (float): Gravity (default 9.81)
+
+    Returns:
+        dict with keys: v0, theta (deg), v0x, v0y, t, x, y, vx, vy
+    """
+    v0_sym, theta_sym, t_sym, x_sym, y_sym = symbols("v0 theta t x y", real=True)
+    v0x = v0_sym * cos(theta_sym)
+    v0y = v0_sym * sin(theta_sym)
+    
+    eqs = []
+
+    # x(t) = v0x * t
+    eqs.append(Eq(x_sym, v0x * t_sym))
+    # y(t) = y0 + v0y * t - 1/2 * g * t^2
+    eqs.append(Eq(y_sym, y0 + v0y * t_sym - 0.5 * g * t_sym**2))
+    
+    knowns = {}
+    if v0 is not None: knowns[v0_sym] = v0
+    if theta is not None: knowns[theta_sym] = radians(theta)
+    if t is not None: knowns[t_sym] = t
+    if x is not None: knowns[x_sym] = x
+    if y is not None: knowns[y_sym] = y
+
+    if len(knowns) < 2:
+        raise ValueError("Provide at least 2 known values among (v0, theta, t, x, y)")
+
+    # Løs ligningerne symbolsk
+    substituted = [eq.subs(knowns) for eq in eqs]
+    unknowns = [s for s in [v0_sym, theta_sym, t_sym, x_sym, y_sym] if s not in knowns]
+    sols = solve(substituted, unknowns, dict=True)
+
+    if not sols:
+        raise ValueError("Could not find a solution")
+
+    # Brug den første løsning
+    sol = sols[0]
+
+    # Opbyg resultater
+    all_values = {**knowns, **sol}
+    v0_val = float(all_values[v0_sym])
+    theta_rad = float(all_values[theta_sym])
+    vx_val = float(v0_val * cos(theta_rad))
+    vy_val = float(v0_val * sin(theta_rad) - g * all_values.get(t_sym, t))
+
+    return {
+        "v0": v0_val,
+        "theta (deg)": degrees(theta_rad),
+        "v0x": float(v0_val * cos(theta_rad)),
+        "v0y": float(v0_val * sin(theta_rad)),
+        "t": float(all_values.get(t_sym, t)),
+        "x": float(all_values.get(x_sym, x)),
+        "y": float(all_values.get(y_sym, y)),
+        "vx": vx_val,
+        "vy": vy_val
+    }

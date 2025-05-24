@@ -1,4 +1,4 @@
 from sympy import *
-import math
+from math import *
 from typing import List
 import matplotlib.pyplot as plt

@@ -85,100 +85,113 @@ class VectorPair:
         angle_rad = atan(Vy / Vx)
 
         # Convert to degrees for readability
-        return radian_to_degree(N(angle_rad))
+        return degrees(N(angle_rad))
 
     def __str__(self):
         pair = self.getPair()
         return f"Vector Pair:\n  First: {pair[0]}\n  Second: {pair[1]}"
 
 class Projectile:
-    def __init__(self, *, 
-                 v0=None, theta=None, 
-                 v0x=None, v0y=None, 
-                 vector=None, 
+    def __init__(self, *,
+                 v0=None, theta=None,
+                 v0x=None, v0y=None,
+                 vector=None,
                  vector_pair=None,
+                 time_of_flight=None,
                  y0=0, g=gravity()):
         """
-    Initializes a projectile motion object.
+        Initializes a projectile motion object.
 
-    You must provide one and only one of the following input combinations:
+        You must provide one and only one of the following input combinations:
 
-    1. v0 and theta (float, float):
-        - v0: Initial speed (magnitude of velocity) in m/s
-        - theta: Launch angle in radians
+        1. v0 and theta (float, float):
+            - v0: Initial speed (m/s)
+            - theta: Launch angle (radians)
 
-    2. v0x and v0y (float, float):
-        - v0x: Horizontal component of velocity in m/s
-        - v0y: Vertical component of velocity in m/s
+        2. v0x and v0y (float, float):
+            - v0x: Horizontal velocity (m/s)
+            - v0y: Vertical velocity (m/s)
 
-    3. vector (Vector):
-        - A 2D vector representing the initial velocity (x and y components)
+        3. vector (Vector):
+            - A 2D vector with [v0x, v0y]
 
-    4. vector_pair (VectorPair):
-        - A pair of position vectors; the displacement is used as initial velocity
+        4. vector_pair (VectorPair):
+            - Displacement between two vectors used as velocity
 
-    Optional:
-        - y0 (float): Initial launch height in meters (default: 0)
-        - g (float): Gravitational acceleration in m/s² (default: gravity())
+        5. theta and time_of_flight:
+            - theta: Launch angle (radians)
+            - time_of_flight: Total flight time in seconds
 
-    Raises:
-        ValueError: If no valid input combination is provided
-        TypeError: If vector or vector_pair are not of the correct type
-        ValueError: If a vector has less than 2 components
+        Optional:
+            - y0 (float): Launch height in meters (default: 0)
+            - g (float): Gravitational acceleration in m/s² (default: gravity())
 
-    Sets:
-        - self.v0: Initial speed (float)
-        - self.theta: Launch angle in radians (float)
-        - self.v0x: Horizontal velocity (float)
-        - self.v0y: Vertical velocity (float)
-        - self.y0: Initial height (float)
-        - self.g: Gravitational acceleration (float)
-    """
+        Raises:
+            ValueError: If valid input is not provided
+            TypeError: If vector or vector_pair have invalid type
+        """
         self.y0 = y0
         self.g = g
 
+        # Method 1: Vector instance
         if vector is not None:
             if not isinstance(vector, Vector):
-                raise TypeError("The vector needs to be a instance of Vector-class")
+                raise TypeError("The vector must be an instance of the Vector class.")
             vec = vector.getVector()
             if len(vec) < 2:
-                raise ValueError("Vector needs at minimum 2 components")
+                raise ValueError("Vector must have at least 2 components.")
             self.v0x = vec[0]
             self.v0y = vec[1]
             self.v0 = sqrt(self.v0x**2 + self.v0y**2)
             self.theta = atan2(self.v0y, self.v0x)
 
+        # Method 2: VectorPair instance
         elif vector_pair is not None:
             if not isinstance(vector_pair, VectorPair):
-                raise TypeError("vector_pair needs to be an instance of the VectorPair-class")
+                raise TypeError("vector_pair must be an instance of the VectorPair class.")
             disp = vector_pair.displacement()
             if len(disp) < 2:
-                raise ValueError("VectorPair needs a 2D-difference")
+                raise ValueError("VectorPair must be at least 2D.")
             self.v0x = disp[0]
             self.v0y = disp[1]
             self.v0 = sqrt(self.v0x**2 + self.v0y**2)
             self.theta = atan2(self.v0y, self.v0x)
 
+        # Method 3: v0 and theta
         elif v0 is not None and theta is not None:
             self.v0 = v0
             self.theta = theta
             self.v0x = v0 * cos(theta)
             self.v0y = v0 * sin(theta)
 
+        # Method 4: v0x and v0y
         elif v0x is not None and v0y is not None:
             self.v0x = v0x
             self.v0y = v0y
             self.v0 = sqrt(v0x**2 + v0y**2)
             self.theta = atan2(v0y, v0x)
 
+        # Method 5: theta and total time of flight (solve for v0)
+        elif theta is not None and time_of_flight is not None:
+            if time_of_flight <= 0:
+                raise ValueError("Flight time must be positive.")
+            numerator = 0.5 * self.g * time_of_flight**2 - self.y0
+            denominator = time_of_flight * sin(theta)
+            if denominator == 0:
+                raise ValueError("Cannot compute v0: sin(theta) is zero.")
+            self.v0 = numerator / denominator
+            self.theta = theta
+            self.v0x = self.v0 * cos(theta)
+            self.v0y = self.v0 * sin(theta)
+
         else:
-            raise ValueError("You need to give either (v0 og theta), (v0x og v0y), a Vector, or a VectorPair")
+            raise ValueError("You must provide either (v0 and theta), (v0x and v0y), a Vector, a VectorPair, or (theta and time_of_flight).")
 
     def __str__(self):
         return (
             f"--- Projectile Info ---\n"
             f"Initial speed (v0): {self.v0:.2f} m/s\n"
-            f"Launch angle (theta): {radian_to_degree(self.theta):.2f}°\n"
+            f"Launch angle (theta): {degrees(self.theta):.2f}°\n"
             f"Horizontal velocity (v0x): {self.v0x:.2f} m/s\n"
             f"Vertical velocity (v0y): {self.v0y:.2f} m/s\n"
             f"Initial height (y0): {self.y0:.2f} m\n"
@@ -303,73 +316,55 @@ class Projectile:
 
     def get_initial_vector(self):
         return Vector([self.v0x, self.v0y])
-
-def solve_projectile_motion(v0=None, theta=None, t=None, x=None, y=None, y0=0, g=gravity()):
-    """
-    Solves projectile motion equations given known parameters.
     
-    You must provide at least 3 known values among (v0, theta, t, x, y),
-    and optionally y0 and g. The function returns a dict of all others.
+    # Position as a function of time (horizontal)
+    def x(self, t):
+        """
+        Returns the horizontal position x(t) in meters at time t (seconds).
+        """
+        return self.v0x * t
 
-    Parameters:
-        v0 (float): Initial speed in m/s
-        theta (float): Launch angle in degrees
-        t (float): Time in seconds
-        x (float): Horizontal position
-        y (float): Vertical position
-        y0 (float): Launch height (default 0)
-        g (float): Gravity (default 9.81)
+    # Position as a function of time (vertical)
+    def y(self, t):
+        """
+        Returns the vertical position y(t) in meters at time t (seconds), accounting for gravity.
+        """
+        return self.v0y * t - 0.5 * self.g * t**2 + self.y0
 
-    Returns:
-        dict with keys: v0, theta (deg), v0x, v0y, t, x, y, vx, vy
-    """
-    v0_sym, theta_sym, t_sym, x_sym, y_sym = symbols("v0 theta t x y", real=True)
-    v0x = v0_sym * math.cos(theta_sym)
-    v0y = v0_sym * math.sin(theta_sym)
-    
-    eqs = []
+    # Horizontal velocity (constant)
+    def vx(self, t):
+        """
+        Returns the horizontal velocity vx(t) in m/s, which is constant.
+        """
+        return self.v0x
 
-    # x(t) = v0x * t
-    eqs.append(Eq(x_sym, v0x * t_sym))
-    # y(t) = y0 + v0y * t - 1/2 * g * t^2
-    eqs.append(Eq(y_sym, y0 + v0y * t_sym - 0.5 * g * t_sym**2))
-    
-    knowns = {}
-    if v0 is not None: knowns[v0_sym] = v0
-    if theta is not None: knowns[theta_sym] = degree_to_radian(theta)
-    if t is not None: knowns[t_sym] = t
-    if x is not None: knowns[x_sym] = x
-    if y is not None: knowns[y_sym] = y
+    # Vertical velocity as a function of time
+    def vy(self, t):
+        """
+        Returns the vertical velocity vy(t) in m/s at time t (seconds), decreasing due to gravity.
+        """
+        return self.v0y - self.g * t
 
-    if len(knowns) < 2:
-        raise ValueError("Provide at least 2 known values among (v0, theta, t, x, y)")
+    # Squared vertical velocity at a given height
+    def vy_squared(self, y):
+        """
+        Returns vy² at a given vertical position y (meters), using energy conservation.
+        """
+        return self.v0y**2 - 2 * self.g * (y - self.y0)
 
-    # Løs ligningerne symbolsk
-    substituted = [eq.subs(knowns) for eq in eqs]
-    unknowns = [s for s in [v0_sym, theta_sym, t_sym, x_sym, y_sym] if s not in knowns]
-    sols = solve(substituted, unknowns, dict=True)
+    # Total speed squared at a given height
+    def v_total_squared(self, y):
+        """
+        Returns total velocity squared v² at a given height y (meters), without using time.
+        """
+        return self.v0**2 - 2 * self.g * (y - self.y0)
 
-    if not sols:
-        raise ValueError("Could not find a solution")
+    # Vertical position as a function of horizontal position
+    def y_from_x(self, x):
+        """
+        Returns the vertical position y as a function of horizontal position x (meters).
+        This is the trajectory equation y(x) for projectile motion.
+        """
+        return self.y0 + tan(self.theta) * x - (self.g / (2 * self.v0**2 * cos(self.theta)**2)) * x**2
 
-    # Brug den første løsning
-    sol = sols[0]
 
-    # Opbyg resultater
-    all_values = {**knowns, **sol}
-    v0_val = float(all_values[v0_sym])
-    theta_rad = float(all_values[theta_sym])
-    vx_val = float(v0_val * math.cos(theta_rad))
-    vy_val = float(v0_val * math.sin(theta_rad) - g * all_values.get(t_sym, t))
-
-    return {
-        "v0": v0_val,
-        "theta (deg)": radian_to_degree(theta_rad),
-        "v0x": float(v0_val * math.cos(theta_rad)),
-        "v0y": float(v0_val * math.sin(theta_rad)),
-        "t": float(all_values.get(t_sym, t)),
-        "x": float(all_values.get(x_sym, x)),
-        "y": float(all_values.get(y_sym, y)),
-        "vx": vx_val,
-        "vy": vy_val
-    }

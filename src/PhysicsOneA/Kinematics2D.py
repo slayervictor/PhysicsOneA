@@ -175,14 +175,15 @@ class Projectile:
             raise ValueError("You need to give either (v0 og theta), (v0x og v0y), a Vector, or a VectorPair")
 
     def __str__(self):
-        return {
-            "v0": self.v0,
-            "theta (deg)": degrees(self.theta),
-            "v0x": self.v0x,
-            "v0y": self.v0y,
-            "y0": self.y0,
-            "g": self.g
-        }
+        return (
+            f"v0: {self.v0:.2f} m/s\n"
+            f"theta: {degrees(self.theta):.2f}° (degrees)\n"
+            f"v0x: {self.v0x:.2f} m/s\n"
+            f"v0y: {self.v0y:.2f} m/s\n"
+            f"y0: {self.y0:.2f} m\n"
+            f"g: {self.g:.2f} m/s²\n"
+            f"time of flight: {self.time_of_flight():.2f} s"
+        )
 
 
     def time_of_flight(self):

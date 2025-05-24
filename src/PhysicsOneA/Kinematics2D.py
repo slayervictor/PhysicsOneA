@@ -242,17 +242,17 @@ class Projectile:
     def __str__(self):
         return (
             f"--- Projectile Info ---\n"
-            f"Initial speed (v0): {self.v0:.2f} m/s\n"
+            f"Initial speed (v0): {self.v0:.4f} m/s\n"
             f"Launch angle (theta): {round(evalf(radian_to_degree(self.theta)),2)}°\n"
-            f"Horizontal velocity (v0x): {self.v0x:.2f} m/s\n"
-            f"Vertical velocity (v0y): {self.v0y:.2f} m/s\n"
-            f"Initial height (y0): {self.y0:.2f} m\n"
+            f"Horizontal velocity (v0x): {self.v0x:.4f} m/s\n"
+            f"Vertical velocity (v0y): {self.v0y:.4f} m/s\n"
+            f"Initial height (y0): {self.y0:.4f} m\n"
             f"Gravity (g): {self.g} m/s²\n"
             f"\n--- Derived Quantities ---\n"
-            f"Time of flight (flat): {self.time_of_flight():.2f} s\n"
-            f"Time of flight (realistic): {self.time_of_flight_full():.2f} s\n"
-            f"Maximum height: {self.max_height():.2f} m\n"
-            f"Range: {self.range():.2f} m"
+            f"Time of flight (flat): {self.time_of_flight():.4f} s\n"
+            f"Time of flight (realistic): {self.time_of_flight_full():.4f} s\n"
+            f"Maximum height: {self.max_height():.4f} m\n"
+            f"Range: {self.range():.4f} m"
         )
 
 

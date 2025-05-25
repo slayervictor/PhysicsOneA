@@ -76,40 +76,62 @@ class VectorPair:
 
 class Projectile:
     def __init__(self, *,
-                 v0=None, theta=None,
-                 v0x=None, v0y=None,
-                 vector=None,
-                 vector_pair=None,
-                 time_of_flight=None,
-                 max_height=None,
-                 range_=None,
-                 impact_height=None,
-                 initial_point=None,
-                 target_point=None,
-                 apex_point=None,
-                 start=None,
-                 end=None,
-                 y0=0, g=gravity()):
+             v0=None, theta=None,
+             v0x=None, v0y=None,
+             vector=None,
+             vector_pair=None,
+             time_of_flight=None,
+             max_height=None,
+             range_=None,
+             impact_height=None,
+             initial_point=None,
+             target_point=None,
+             apex_point=None,
+             start=None,
+             end=None,
+             minimal_energy=False,
+             y0=0, g=gravity()):
         """
-        Initializes a projectile motion object.
+        Initializes a projectile motion object based on one of several supported input combinations.
 
-        Automatically computes v0, theta, v0x, v0y.
+        Parameters:
+            v0 (float): Initial speed magnitude [m/s].
+            theta (float): Launch angle [radians].
+            v0x (float): Initial horizontal velocity component [m/s].
+            v0y (float): Initial vertical velocity component [m/s].
+            vector (Vector): A 2D velocity vector object with getVector() method.
+            vector_pair (VectorPair): Object providing initial velocity via displacement().
+            time_of_flight (float): Total flight time [s].
+            max_height (float): Maximum vertical height of trajectory [m].
+            range_ (float): Total horizontal distance travelled [m].
+            impact_height (float): Final vertical position when projectile lands [m].
+            initial_point (tuple): (x, y) coordinates of the starting point.
+            target_point (tuple): (x, y) coordinates of the target landing point.
+            apex_point (tuple): (x, y) coordinates of the apex (max height).
+            start (tuple): Alias for initial_point (x, y).
+            end (tuple): Alias for target_point (x, y).
+            minimal_energy (bool): If True, computes trajectory with minimal speed (45° angle).
+            y0 (float): Initial vertical position of launch [m]. Default is 0.
+            g (float): Gravitational acceleration [m/s²]. Default is 9.82 m/s².
 
-        Supported input combinations:
-        1. v0 and theta
-        2. v0x and v0y
-        3. vector (velocity vector)
-        4. vector_pair (displacement vector)
-        5. theta and time_of_flight
-        6. max_height, range_, and impact_height
-        7. max_height and range_
-        8. range_ and time_of_flight
-        9. initial_point and target_point
-        10. range_ and impact_height
-        11. apex_point
-        12. start, end, and max_height
+        Supported Input Combinations (provide only one of these):
+            1.  v0 and theta
+            2.  v0x and v0y
+            3.  vector (2D velocity vector)
+            4.  vector_pair (2D displacement)
+            5.  theta and time_of_flight
+            6.  max_height, range_, and impact_height
+            7.  max_height and range_
+            8.  range_ and time_of_flight
+            9.  initial_point and target_point
+            10. range_ and impact_height
+            11. apex_point
+            12. start, end, and max_height
+            13. minimal_energy = True and range_ (sets v0 = sqrt(g * range), theta = 45°)
+
+        Raises:
+            ValueError: If none or an invalid combination of parameters is provided.
         """
-
         self.y0 = format_input(y0)
         self.g = format_input(g)
 
@@ -145,7 +167,13 @@ class Projectile:
             self.v0 = numerator / denominator
             self.v0x = self.v0 * cos(self.theta)
             self.v0y = self.v0 * sin(self.theta)
-
+        elif minimal_energy and range_ is not None:
+            # Minimal speed: symmetric path, angle = 45°, v0 = sqrt(gL)
+            r = format_input(range_)
+            self.theta = format_input(np.pi / 4)  # 45 degrees in radians
+            self.v0 = sqrt(self.g * r)
+            self.v0x = self.v0 * cos(self.theta)
+            self.v0y = self.v0 * sin(self.theta)
         # ✅ NEW: Best match for diver problem (y0, max_height, impact_height, and range)
         elif max_height is not None and range_ is not None and impact_height is not None:
             h = format_input(max_height)
@@ -398,11 +426,10 @@ class Projectile:
         return self.v0x * t
 
     # Position as a function of time (vertical)
-    def y(self, t):
-        """
-        Returns the vertical position y(t) in meters at time t (seconds), accounting for gravity.
-        """
-        return self.v0y * t - 0.5 * self.g * t**2 + self.y0
+    def y(self, x):
+        t = x / self.v0x
+        return self.y0 + self.v0y * t - 0.5 * self.g * t**2
+
 
     # Horizontal velocity (constant)
     def vx(self, t):
@@ -613,7 +640,29 @@ class CircularMotion:
         )
 
 
+    def angular_velocity(self):
+        """
+        ω = v / r
+        """
+        v = self.velocity()
+        r = self.r
+        if r is None:
+            raise ValueError("Radius is missing for angular velocity")
+        return v / r
 
+    def angular_acceleration(self, domega_dt):
+        """
+        α = dω/dt
+        """
+        return format_input(domega_dt)
+
+    def polar_position(self, theta):
+        """
+        r⃗ = (r cos(θ), r sin(θ))
+        """
+        r = self.r
+        theta = format_input(theta)
+        return (r * cos(theta), r * sin(theta))
     
     def critical_period_for_weightlessness(self, g=format_input(gravity())):
         """

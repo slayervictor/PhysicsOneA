@@ -1,6 +1,7 @@
 LICENSE
 README.md
 pyproject.toml
+src/PhysicsOneA/Forces.py
 src/PhysicsOneA/Kinematics1D.py
 src/PhysicsOneA/Kinematics2D.py
 src/PhysicsOneA/__init__.py

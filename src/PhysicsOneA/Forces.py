@@ -67,3 +67,44 @@ def net_force(mass, acceleration):
     a = format_input(acceleration)
     return m * a
 
+def net_force_from_velocity_change(mass, dv, dt):
+    """
+    Calculates the net force from a change in velocity over time:
+        F = m * (dv / dt)
+    
+    Parameters:
+        mass: mass of the object [kg]
+        dv: change in velocity [m/s]
+        dt: time interval [s]
+    
+    Returns:
+        Net force [N]
+    """
+    m = format_input(mass)
+    dv = format_input(dv)
+    dt = format_input(dt)
+    return m * (dv / dt)
+
+
+def acceleration_of_two_blocks(F, mA, mB, g=gravity()):
+    """
+    Calculates acceleration of both blocks as a system:
+    a = (F - (mA + mB) * g) / (mA + mB)
+    """
+    F = format_input(F)
+    mA = format_input(mA)
+    mB = format_input(mB)
+    g = format_input(g)
+    total_mass = mA + mB
+    return (F - total_mass * g) / total_mass
+
+def tension_in_rope(mB, acceleration, g=gravity()):
+    """
+    Calculates the tension in the rope acting on mB:
+    T = mB * (a + g)
+    """
+    mB = format_input(mB)
+    a = format_input(acceleration)
+    g = format_input(g)
+    return mB * (a + g)
+

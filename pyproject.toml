@@ -1,6 +1,6 @@
 [project]
 name = "PhysicsOneA"
-version = "0.1.1"
+version = "0.1.2"
 description = "A comprehensive physics utility package for analysis and visualization made for the Physics1 course at DTU"
 authors = [
     { name = "Raaaainbow", email = "seba7204@gmail.com" },

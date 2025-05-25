@@ -14,14 +14,14 @@ class Vector:
         return self.vec
 
     def length(self):
-        return self.vec.norm()
+        return sqrt(usum(self.vec**2))
     
     def __str__(self):
         return f"Vector: {self.vec}\nLength: {self.length()}"
 
 class Time:
-    def __init__(self,_from: Float, _to: Float):
-        self.period = [_from,_to]
+    def __init__(self,_from: Union[Float,UFloat], _to: Union[Float,UFloat]):
+        self.period = [format_input(_from),format_input(_to)]
     
     def delta_time(self):
         return self.period[1]-self.period[0]

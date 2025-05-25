@@ -136,3 +136,76 @@ def solve_suvat(s=None, u=None, v=None, a=None, t=None):
     }
     
     return result
+
+def plot_distance_vs_time(u, a, s0=0):
+    """
+    Plots distance vs. time for a single object under constant acceleration.
+
+    Parameters:
+        u: initial velocity (float or ufloat)
+        a: acceleration (float or ufloat)
+        s0: initial position (default 0)
+    """
+    # Solve to find stopping time (when v = 0)
+    result = solve_suvat(u=u, a=a, v=0)
+
+    s = result['s']
+    t = result['t']
+
+    t_vals = np.linspace(0, float(t), 200)
+    s_vals = s0 + float(u) * t_vals + 0.5 * float(a) * t_vals**2
+
+    # Plotting
+    plt.figure(figsize=(8, 5))
+    plt.plot(t_vals, s_vals, label='Object Path', color='green')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Distance (m)')
+    plt.title('Distance vs Time for One Object')
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_distance_vs_time_two_objects(u1, a1, u2, a2, s_total):
+    """
+    Plots distance vs time for two cars decelerating toward each other.
+    
+    Parameters:
+        u1, a1: initial velocity and acceleration of car 1 (float or ufloat)
+        u2, a2: initial velocity and acceleration of car 2 (float or ufloat)
+        s_total: initial separation between the cars (float)
+    """
+    # Solve for stopping distances and times
+    result1 = solve_suvat(u=u1, a=a1, v=0)
+    result2 = solve_suvat(u=u2, a=a2, v=0)
+
+    s1 = result1['s']
+    t1 = result1['t']
+
+    s2 = result2['s']
+    t2 = result2['t']
+
+    t_max = float(max(t1, t2))  # Total time range for plot
+
+    # Generate time array
+    t_vals = np.linspace(0, t_max, 200)
+
+    # Calculate positions of each car over time
+    def position(u, a, t_arr):
+        return u * t_arr + 0.5 * a * t_arr**2
+
+    x1 = position(float(u1), float(a1), t_vals)
+    x2 = s_total - position(float(u2), float(a2), t_vals)
+
+    # Plotting
+    plt.figure(figsize=(10, 6))
+    plt.plot(t_vals, x1, label='Car 1 (→)', color='blue')
+    plt.plot(t_vals, x2, label='Car 2 (←)', color='red')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Position (m)')
+    plt.title('Distance vs Time for Two Cars Moving Toward Each Other')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()

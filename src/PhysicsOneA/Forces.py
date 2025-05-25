@@ -108,3 +108,78 @@ def tension_in_rope(mB, acceleration, g=gravity()):
     g = format_input(g)
     return mB * (a + g)
 
+def inclined_plane_acceleration(mass, force, theta_deg, g=gravity()):
+    """
+    Returns the acceleration of a block pushed horizontally up a frictionless incline.
+
+    Formula:
+        a = (F * cos(theta))/m - g * sin(theta)
+    """
+    m = format_input(mass)
+    F = format_input(force)
+    theta = degree_to_radian(theta_deg)
+    g = format_input(g)
+
+    return (F * cos(theta)) / m - g * sin(theta)
+
+
+def normal_force_on_incline(mass, force, theta_deg, g=gravity()):
+    """
+    Returns the normal force on the block on a frictionless incline.
+
+    Formula:
+        N = m * g * cos(theta) + F * sin(theta)
+    """
+    m = format_input(mass)
+    F = format_input(force)
+    theta = degree_to_radian(theta_deg)
+    g = format_input(g)
+
+    return m * g * cos(theta) + F * sin(theta)
+
+
+def three_block_acceleration(mA, mB, mC, force):
+    """
+    Returns total acceleration of three-block system pulled by force F.
+    """
+    mA = format_input(mA)
+    mB = format_input(mB)
+    mC = format_input(mC)
+    F = format_input(force)
+
+    total_mass = mA + mB + mC
+    return F / total_mass
+
+
+def tension_bc(mC, acceleration):
+    """
+    Tension acting on block C (pushed by block B).
+    """
+    mC = format_input(mC)
+    a = format_input(acceleration)
+    return mC * a
+
+
+def tension_ab(mB, mC, acceleration):
+    """
+    Tension between A and B (acts on combined B+C).
+    """
+    mB = format_input(mB)
+    mC = format_input(mC)
+    a = format_input(acceleration)
+    return (mB + mC) * a
+
+def unstretched_length_of_spring(mass, radius, period, spring_constant):
+    """
+    Calculates the unstretched length L0 of a spring during circular motion.
+    
+    L0 = R - (m * v²) / (k * R)
+    where v = 2πR / T
+    """
+    m = format_input(mass)
+    R = format_input(radius)
+    T = format_input(period)
+    k = format_input(spring_constant)
+
+    v = (2 * np.pi * R) / T
+    return R - (m * v**2) / (k * R)

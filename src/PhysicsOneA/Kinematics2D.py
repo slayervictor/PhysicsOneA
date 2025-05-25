@@ -20,7 +20,7 @@ class Vector:
         return f"Vector: {self.vec}\nLength: {self.length()}"
 
 class Time:
-    def __init__(self,_from: Union[Float,UFloat], _to: Union[Float,UFloat]):
+    def __init__(self,_from: Union[float,UFloat], _to: Union[float,UFloat]):
         self.period = [format_input(_from),format_input(_to)]
     
     def delta_time(self):

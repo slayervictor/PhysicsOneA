@@ -640,7 +640,29 @@ class CircularMotion:
         )
 
 
+    def angular_velocity(self):
+        """
+        ω = v / r
+        """
+        v = self.velocity()
+        r = self.r
+        if r is None:
+            raise ValueError("Radius is missing for angular velocity")
+        return v / r
 
+    def angular_acceleration(self, domega_dt):
+        """
+        α = dω/dt
+        """
+        return format_input(domega_dt)
+
+    def polar_position(self, theta):
+        """
+        r⃗ = (r cos(θ), r sin(θ))
+        """
+        r = self.r
+        theta = format_input(theta)
+        return (r * cos(theta), r * sin(theta))
     
     def critical_period_for_weightlessness(self, g=format_input(gravity())):
         """

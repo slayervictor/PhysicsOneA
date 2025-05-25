@@ -40,7 +40,7 @@ def radian_to_degree(angle_rad):
 
 def degree_to_radian(angle_deg):
     """Convert degrees to radians using umath-compatible value"""
-    return format_input(angle_deg) * (pi / 180)
+    return format_input(angle_deg) * (format_input(np.pi) / 180)
 
 
 def calculate_from_angle(angle_deg: float):

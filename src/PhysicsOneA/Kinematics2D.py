@@ -133,7 +133,7 @@ class Projectile:
             best_theta = None
             min_error = float('inf')
             for deg in range(500, 860):  # 5.00° to 8.59°
-                th = (deg / 100) * (pi / 180)
+                th = (deg / 100) * (format_input(np.pi) / 180)
                 lhs = h / r
                 rhs = (sin(th)**2) / (2 * sin(2 * th))
                 err = abs(lhs - rhs)
@@ -167,7 +167,7 @@ class Projectile:
             best_theta = None
             min_error = float('inf')
             for deg in range(5, 86):
-                th = deg * (pi / 180)
+                th = deg * (format_input(np.pi) / 180)
                 try:
                     v0 = sqrt((self.g * r**2) / (2 * cos(th)**2 * (r * tan(th) + self.y0 - h)))
                     y_calc = self.y0 + tan(th) * r - (self.g * r**2) / (2 * v0**2 * cos(th)**2)
@@ -389,20 +389,22 @@ class CircularMotion:
             - If only r and T are given, v is computed automatically.
             - If v is given directly, it will be used instead of computing it from r and T.
             - You can leave v_func out unless you're specifically modeling acceleration with time-varying speed.
-        """
-        self.r = r
-        self.T = T
-        self.v = v
-        self.v_func = v_func
-        self.t = symbols('t')
 
-        # Automatically compute tangential velocity from radius and period, if not given
+            v_func example:
+            def velocity_func(t):
+                return ufloat(3 + 0.5 * t, 0.1)  # velocity in m/s with uncertainty
+        """
+        self.r = format_input(r) if r is not None else None
+        self.T = format_input(T) if T is not None else None
+        self.v = format_input(v) if v is not None else None
+        self.v_func = v_func
+
         if self.v is None:
             if self.r is not None and self.T is not None:
-                self.v = Float((2 * pi * self.r) / self.T)
-            elif self.r is None and self.T is not None:
+                self.v = (2 * format_input(np.pi) * self.r) / self.T
+            elif self.r is None:
                 raise ValueError("Cannot compute velocity: radius (r) is missing.")
-            elif self.r is not None and self.T is None:
+            elif self.T is None:
                 raise ValueError("Cannot compute velocity: period (T) is missing.")
 
 
@@ -414,7 +416,7 @@ class CircularMotion:
             v = (2πr) / T
 
         Returns:
-            float or sympy expression: The velocity v [meters/second, m/s]
+            float or UFloat: The velocity v [meters/second, m/s]
 
         Raises:
             ValueError: If neither v nor both r and T are provided.
@@ -426,7 +428,7 @@ class CircularMotion:
         if self.v is not None:
             return self.v
         elif self.r is not None and self.T is not None:
-            return Float((2 * pi * self.r) / self.T)
+            return (2 * format_input(np.pi) * self.r) / self.T
         else:
             raise ValueError("Missing values: Provide either v, or both r and T.")
 
@@ -438,7 +440,7 @@ class CircularMotion:
             a_c = v² / r
 
         Returns:
-            float or sympy expression: The centripetal acceleration a_c [meters/second², m/s²]
+            float or UFloat: The centripetal acceleration a_c [m/s²]
 
         Raises:
             ValueError: If radius r is not provided.
@@ -447,88 +449,109 @@ class CircularMotion:
             - v is the tangential velocity [m/s]
             - r is the radius of the circular path [m]
         """
-        v = self.velocity()
         if self.r is None:
             raise ValueError("Radius r is required to compute centripetal acceleration.")
-        return Float(v**2 / self.r)
+        v = self.velocity()
+        return (v ** 2) / self.r
 
-    def tangential_acceleration(self):
+    def tangential_acceleration(self, t: float, dt: float = 1e-5):
         """
-        Returns the tangential acceleration of the object over time.
+        Returns the tangential acceleration at time t using numerical differentiation.
 
         Formula:
-            a_T = d|v(t)| / dt
+            a_T = d|v(t)| / dt ≈ (|v(t + dt)| - |v(t)|) / dt
+
+        Parameters:
+            t (float): Time at which to evaluate acceleration [s]
+            dt (float): Small time step for numerical differentiation [s]
 
         Returns:
-            sympy expression: The derivative of the speed function with respect to time [m/s²]
+            float or UFloat: Tangential acceleration a_T [m/s²]
 
         Raises:
             ValueError: If no time-dependent velocity function v(t) is provided.
 
         Notes:
-            - v(t) must be a symbolic function of time [m/s]
-            - Result is symbolic and represents instantaneous change in speed
-            
-            function example:
-            t = symbols('t')  # time symbol in seconds
-            v_func = 5 * sin(t)
+            - v_func must be a callable returning float or UFloat.
+            - Absolute value is used to compute the magnitude of tangential acceleration.
         """
         if self.v_func is None:
             raise ValueError("A time-dependent velocity function v(t) is required for tangential acceleration.")
-        return diff(abs(self.v_func), self.t)
+
+        v1 = abs(self.v_func(t))
+        v2 = abs(self.v_func(t + dt))
+        return (v2 - v1) / dt
+
 
     def __str__(self):
+        def fmt(val, unit):
+            try:
+                return f"{val.n:.5f} ± {val.s:.5f} {unit}"
+            except Exception:
+                return "?"
+
         try:
             v_val = self.velocity()
-            v_str = f"v = {round(float(v_val), 4)} m/s"
-        except:
+            v_str = fmt(v_val, "m/s")
+        except Exception:
             v_str = "v = ?"
 
         try:
             ac_val = self.centripetal_acceleration()
-            ac_str = f"centripetal acceleration = {round(float(ac_val), 4)} m/s²"
-        except:
+            ac_str = fmt(ac_val, "m/s²")
+        except Exception:
             ac_str = "centripetal acceleration = ?"
 
-        try:
-            at_val = self.tangential_acceleration()
-            at_str = f"tangential acceleration = {at_val} m/s²"
-        except:
-            at_str = "tangential acceleration = ?"
+        if self.v_func is not None:
+            try:
+                at_val = self.tangential_acceleration(t=1.0)
+                at_str = fmt(at_val, "m/s²")
+            except Exception:
+                at_str = "tangential acceleration = ?"
+        else:
+            at_str = "tangential acceleration = N/A"
 
         try:
             T_crit = self.critical_period_for_weightlessness()
-            T_crit_hours = float(T_crit) / 3600
-            crit_str = f"Critical period for weightlessness: {T_crit:.2f} seconds (~{T_crit_hours:.2f} hours)"
-        except:
+            T_crit_hours = T_crit / 3600
+            crit_str = (
+                f"Critical period for weightlessness: {T_crit.n:.2f} ± {T_crit.s:.2f} seconds "
+                f"(~{T_crit_hours.n:.2f} ± {T_crit_hours.s:.2f} hours)"
+            )
+        except Exception:
             crit_str = "Critical period for weightlessness: ?"
+
+        r_str = fmt(self.r, "m") if self.r is not None else "?"
+        T_str = fmt(self.T, "s") if self.T is not None else "?"
 
         return (
             "--- Circular Motion ---\n"
-            f"Radius r: {self.r} m\n"
-            f"Period T: {self.T} s\n"
+            f"Radius r: {r_str}\n"
+            f"Period T: {T_str}\n"
             f"{v_str}\n"
             f"{ac_str}\n"
             f"{at_str}\n"
             f"{crit_str}"
         )
 
+
+
     
-    def critical_period_for_weightlessness(self, g=gravity()):
+    def critical_period_for_weightlessness(self, g=format_input(gravity())):
         """
         Computes the critical period T [s] at which the centripetal acceleration equals g.
 
-        This is the period at which a person at the equator (or other radius r) would feel weightless
+        This is the period at which a person at the equator (or other radius r) would feel weightless,
         due to the required centripetal force matching gravitational acceleration.
 
         Formula:
             T = sqrt((4 * π² * r) / g)
 
         Parameters:
-            g (float): Gravitational acceleration [m/s²]. Default is 9.8.
+            g (float or UFloat): Gravitational acceleration [m/s²]. Default is 9.8.
 
         Returns:
-            float: The critical period T in seconds.
+            float or UFloat: The critical period T in seconds.
 
         Raises:
             ValueError: If radius r is not provided.
@@ -536,9 +559,18 @@ class CircularMotion:
         if self.r is None:
             raise ValueError("Radius r is required to compute the critical period.")
         
-        T_critical = sqrt((4 * pi**2 * self.r) / g)
-        return Float(T_critical)
-
+        return sqrt((4 * format_input(np.pi)**2 * self.r) / g)
+def ensure_vector(v) -> np.ndarray:
+    """
+    Ensures the input is a NumPy array of UFloat values.
+    """
+    if isinstance(v, (list, tuple, np.ndarray)):
+        v_array = np.array(v, dtype=object)
+        return np.array([format_input(x) for x in v_array])
+    elif isinstance(v, np.ndarray):
+        return v
+    else:
+        raise TypeError("Expected a list, tuple, or ndarray.")
 class RelativeMotion:
     def __init__(self, *,
                  v_ps_prime=None, v_sprime_s=None,
@@ -554,7 +586,7 @@ class RelativeMotion:
                 - v_sprime_s: Velocity of frame S′ relative to frame S [Vector or list of floats]
                 - a_ps_prime: Acceleration of point P relative to frame S′ [Vector or list of floats]
                 - a_sprime_s: Acceleration of frame S′ relative to frame S [Vector or list of floats]
-            
+
             OR
 
             2. Tuple inputs:
@@ -565,13 +597,6 @@ class RelativeMotion:
             - v_PS = v_PS′ + v_S′S
             - a_PS = a_PS′ + a_S′S
         """
-        def ensure_vector(v):
-            if isinstance(v, Vector):
-                return v
-            elif isinstance(v, list):
-                return Vector(v)
-            else:
-                raise TypeError("Expected a Vector or list.")
 
         # Handle velocity input
         if velocity_vectors:
@@ -589,7 +614,19 @@ class RelativeMotion:
             self.a_ps_prime = ensure_vector(a_ps_prime) if a_ps_prime is not None else None
             self.a_sprime_s = ensure_vector(a_sprime_s) if a_sprime_s is not None else None
 
-    def relative_velocity(self):
+    @property
+    def v_ps(self):
+        if self.v_ps_prime is not None and self.v_sprime_s is not None:
+            return self.v_ps_prime + self.v_sprime_s
+        return None
+
+    @property
+    def a_ps(self):
+        if self.a_ps_prime is not None and self.a_sprime_s is not None:
+            return self.a_ps_prime + self.a_sprime_s
+        return None
+
+    def relative_velocity(self) -> np.ndarray:
         """
         Calculates the velocity of point P relative to frame S.
 
@@ -597,16 +634,18 @@ class RelativeMotion:
             v_PS = v_PS′ + v_S′S
 
         Returns:
-            sympy Matrix: Resulting relative velocity vector [m/s]
+            numpy.ndarray: Resulting relative velocity vector [m/s] with uncertainties
 
         Raises:
             ValueError: If required velocity vectors are missing.
         """
         if self.v_ps_prime is None or self.v_sprime_s is None:
             raise ValueError("Both v_ps_prime and v_sprime_s must be provided.")
-        return self.v_ps_prime.getVector() + self.v_sprime_s.getVector()
 
-    def relative_acceleration(self):
+        return self.v_ps_prime + self.v_sprime_s
+
+
+    def relative_acceleration(self) -> np.ndarray:
         """
         Calculates the acceleration of point P relative to frame S.
 
@@ -614,38 +653,86 @@ class RelativeMotion:
             a_PS = a_PS′ + a_S′S
 
         Returns:
-            sympy Matrix: Resulting relative acceleration vector [m/s²]
+            numpy.ndarray: Resulting relative acceleration vector [m/s²] with uncertainties
 
         Raises:
             ValueError: If required acceleration vectors are missing.
         """
         if self.a_ps_prime is None or self.a_sprime_s is None:
             raise ValueError("Both a_ps_prime and a_sprime_s must be provided.")
-        return self.a_ps_prime.getVector() + self.a_sprime_s.getVector()
 
-    def __str__(self):
+        return self.a_ps_prime + self.a_sprime_s
+    
+    def _magnitude(self, vec: np.ndarray) -> UFloat:
+            """
+            Returns the magnitude (Euclidean norm) of a 2D vector with uncertainties.
+            """
+            return sqrt(vec[0]**2 + vec[1]**2)
+
+    def _angle(self, vec: np.ndarray) -> UFloat:
+        """
+        Returns the direction (angle in degrees) of a 2D vector with uncertainties.
+        Measured from the x-axis (standard polar coordinate convention).
+        """
+        return degrees(atan2(vec[1], vec[0]))
+
+    def velocity_magnitude(self) -> UFloat:
+        return self._magnitude(self.relative_velocity())
+
+    def velocity_angle(self) -> UFloat:
+        return self._angle(self.relative_velocity())
+
+    def acceleration_magnitude(self) -> UFloat:
+        return self._magnitude(self.relative_acceleration())
+
+    def acceleration_angle(self) -> UFloat:
+        return self._angle(self.relative_acceleration())
+
+    def __str__(self) -> str:
         """
         Returns a formatted string representation of the relative motion configuration,
-        including computed relative velocity and acceleration if possible.
+        including computed relative velocity and acceleration with magnitude and direction,
+        and human-readable descriptions of each variable.
         """
-        lines = ["--- Relative Motion ---"]
-        if self.v_ps_prime and self.v_sprime_s:
+        def format_vec(name, vec):
+            return f"{name} = [{', '.join(str(v) for v in vec)}]"
+
+        lines = ["--- Relative Motion ---", ""]
+
+        # Velocity section
+        if self.v_ps_prime is not None and self.v_sprime_s is not None:
             v_result = self.relative_velocity()
             lines += [
-                f"v_PS′ = {self.v_ps_prime.getVector()}",
-                f"v_S′S = {self.v_sprime_s.getVector()}",
-                f"=> v_PS = {v_result}"
+                "Velocity Vectors:",
+                "  v_PS′  = velocity of point P relative to frame S′",
+                format_vec("  v_PS′", self.v_ps_prime),
+                "  v_S′S = velocity of frame S′ relative to frame S",
+                format_vec("  v_S′S", self.v_sprime_s),
+                "  => v_PS = velocity of point P relative to frame S",
+                format_vec("  v_PS", v_result),
+                f"  ||v_PS|| = {self.velocity_magnitude()} m/s",
+                f"  Angle(v_PS) = {self.velocity_angle()}°",
+                ""
             ]
         else:
-            lines.append("Velocity data incomplete.")
+            lines.append("Velocity data incomplete.\n")
 
-        if self.a_ps_prime and self.a_sprime_s:
+        # Acceleration section
+        if self.a_ps_prime is not None and self.a_sprime_s is not None:
             a_result = self.relative_acceleration()
             lines += [
-                f"a_PS′ = {self.a_ps_prime.getVector()}",
-                f"a_S′S = {self.a_sprime_s.getVector()}",
-                f"=> a_PS = {a_result}"
+                "Acceleration Vectors:",
+                "  a_PS′  = acceleration of point P relative to frame S′",
+                format_vec("  a_PS′", self.a_ps_prime),
+                "  a_S′S = acceleration of frame S′ relative to frame S",
+                format_vec("  a_S′S", self.a_sprime_s),
+                "  => a_PS = acceleration of point P relative to frame S",
+                format_vec("  a_PS", a_result),
+                f"  ||a_PS|| = {self.acceleration_magnitude()} m/s²",
+                f"  Angle(a_PS) = {self.acceleration_angle()}°",
+                ""
             ]
         else:
-            lines.append("Acceleration data incomplete.")
+            lines.append("Acceleration data incomplete.\n")
+
         return "\n".join(lines)

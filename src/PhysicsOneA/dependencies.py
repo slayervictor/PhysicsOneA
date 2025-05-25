@@ -2,6 +2,8 @@ from typing import Union
 
 import matplotlib.pyplot as plt
 
+from math import isclose
+
 from uncertainties import ufloat, UFloat, nominal_value
 from uncertainties.umath import (
     sqrt,

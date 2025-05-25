@@ -36,48 +36,60 @@ def gravity(decimalPoints=2):
     return round(9.816012123456, decimalPoints)
 
 def radian_to_degree(angle_rad):
-    return deg(angle_rad)
+    return degrees(angle_rad)
 
 def degree_to_radian(angle_deg):
-    return rad(angle_deg)
+    """Convert degrees to radians using umath-compatible value"""
+    return format_input(angle_deg) * (pi / 180)
+
 
 def calculate_from_angle(angle_deg: float):
     """
-    Calculates sin, cos, and tan from a given angle in degrees using symbolic math (sympy).
-    Also converts angle to radians for math accuracy.
+    Calculates sin, cos, and tan from a given angle in degrees.
+    Uses uncertainties.umath to propagate uncertainty.
     """
-    angle_rad = radians(angle_deg)
-    angle_sym = symbols('θ')
-    
-    sin_val = sin(rad(angle_deg))
-    cos_val = cos(rad(angle_deg))
-    tan_val = tan(rad(angle_deg))
+    angle_rad = degree_to_radian(angle_deg)
 
-    print(f"\n--- Symbolic Results for angle {angle_deg}° ---")
-    print(f"sin({angle_deg}) = {pretty(sin_val)} ≈ {N(sin_val):.4f}")
-    print(f"cos({angle_deg}) = {pretty(cos_val)} ≈ {N(cos_val):.4f}")
-    if isclose(N(cos_val), 0.0, abs_tol=1e-10):
-        print("tan is undefined (cos = 0)")
+    sin_val = sin(angle_rad)
+    cos_val = cos(angle_rad)
+    try:
+        tan_val = tan(angle_rad)
+    except Exception:
+        tan_val = None
+
+    print(f"\n--- Results for angle {angle_deg}° ---")
+    print(f"sin({angle_deg}) = {sin_val:.4f}")
+    print(f"cos({angle_deg}) = {cos_val:.4f}")
+    if isclose(nominal_value(cos_val), 0.0, abs_tol=1e-10):
+        print("tan is undefined (cos ≈ 0)")
     else:
-        print(f"tan({angle_deg}) = {pretty(tan_val)} ≈ {N(tan_val):.4f}")
+        print(f"tan({angle_deg}) = {tan_val:.4f}")
+
 
 def calculate_from_sides(a=None, b=None, c=None):
     """
     Calculates sin, cos, and tan based on known sides of a right triangle.
-    Accepts uncertain values using the 'uncertainties' module if needed.
+    Works with uncertain values via the 'uncertainties' module.
     """
+    if a is not None:
+        a = format_input(a)
+    if b is not None:
+        b = format_input(b)
+    if c is not None:
+        c = format_input(c)
+
+    if c is None and a is not None and b is not None:
+        c = sqrt(a**2 + b**2)
+
     if c is None:
-        if a is not None and b is not None:
-            c = sqrt(a**2 + b**2)
-        else:
-            print("Insufficient sides provided.")
-            return
+        print("Insufficient sides provided.")
+        return
 
     print("\n--- Results from triangle sides ---")
-    if a is not None and c is not None:
+    if a is not None:
         sin_val = a / c
         print(f"sin(v) = {sin_val:.4f}")
-    if b is not None and c is not None:
+    if b is not None:
         cos_val = b / c
         print(f"cos(v) = {cos_val:.4f}")
     if a is not None and b is not None:

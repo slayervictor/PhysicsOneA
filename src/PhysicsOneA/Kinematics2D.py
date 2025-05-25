@@ -90,30 +90,7 @@ class Projectile:
                  start=None,
                  end=None,
                  y0=0, g=gravity()):
-        """
-        Initializes a projectile motion object.
 
-        Possible input combinations (provide only one):
-
-        1. v0 (float, m/s) and theta (float, radians)
-        2. v0x (float, m/s) and v0y (float, m/s)
-        3. vector (Vector): 2D velocity vector
-        4. vector_pair (VectorPair): initial displacement
-        5. theta (float, radians) and time_of_flight (float, seconds)
-        6. max_height (float, meters) and range_ (float, meters)
-        7. range_ (float, meters) and flight_time (float, seconds)
-        8. initial_point and target_point: each [x, y] (float, meters)
-        9. range_ (float, meters) and impact_height (float, meters)
-        10. apex_point: [x, y] (float, meters)
-        11. start, end (each [x, y]) and max_height (float, meters)
-
-        Optional:
-            y0 (float): launch height (m)
-            g (float): gravity (m/s^2)
-
-        Automatically computes:
-            v0, theta, v0x, v0y
-        """
         self.y0 = format_input(y0)
         self.g = format_input(g)
 
@@ -130,66 +107,71 @@ class Projectile:
             self.theta = atan2(self.v0y, self.v0x)
 
         elif v0 is not None and theta is not None:
-            self.v0 = v0
-            self.theta = theta
-            self.v0x = v0 * cos(theta)
-            self.v0y = v0 * sin(theta)
+            self.v0 = format_input(v0)
+            self.theta = format_input(theta)
+            self.v0x = self.v0 * cos(self.theta)
+            self.v0y = self.v0 * sin(self.theta)
 
         elif v0x is not None and v0y is not None:
-            self.v0x = v0x
-            self.v0y = v0y
-            self.v0 = sqrt(v0x**2 + v0y**2)
-            self.theta = atan2(v0y, v0x)
+            self.v0x = format_input(v0x)
+            self.v0y = format_input(v0y)
+            self.v0 = sqrt(self.v0x**2 + self.v0y**2)
+            self.theta = atan2(self.v0y, self.v0x)
 
         elif theta is not None and time_of_flight is not None:
-            numerator = 0.5 * self.g * time_of_flight**2 - self.y0
-            denominator = time_of_flight * sin(theta)
+            self.theta = format_input(theta)
+            t = format_input(time_of_flight)
+            numerator = 0.5 * self.g * t**2 - self.y0
+            denominator = t * sin(self.theta)
             self.v0 = numerator / denominator
-            self.theta = theta
-            self.v0x = self.v0 * cos(theta)
-            self.v0y = self.v0 * sin(theta)
+            self.v0x = self.v0 * cos(self.theta)
+            self.v0y = self.v0 * sin(self.theta)
 
         elif max_height is not None and range_ is not None:
+            h = format_input(max_height)
+            r = format_input(range_)
             best_theta = None
             min_error = float('inf')
             for deg in range(500, 860):  # 5.00° to 8.59°
-                th = radians(deg / 100)
-                lhs = max_height / range_
+                th = (deg / 100) * (pi / 180)
+                lhs = h / r
                 rhs = (sin(th)**2) / (2 * sin(2 * th))
                 err = abs(lhs - rhs)
                 if err < min_error:
                     best_theta = th
                     min_error = err
             self.theta = best_theta
-            self.v0 = sqrt((2 * self.g * max_height) / (sin(self.theta)**2))
+            self.v0 = sqrt((2 * self.g * h) / (sin(self.theta)**2))
             self.v0x = self.v0 * cos(self.theta)
             self.v0y = self.v0 * sin(self.theta)
 
         elif range_ is not None and time_of_flight is not None:
-            self.v0x = range_ / time_of_flight
-            self.v0y = (self.g * time_of_flight) / 2
+            r = format_input(range_)
+            t = format_input(time_of_flight)
+            self.v0x = r / t
+            self.v0y = (self.g * t) / 2
             self.v0 = sqrt(self.v0x**2 + self.v0y**2)
             self.theta = atan2(self.v0y, self.v0x)
 
         elif initial_point is not None and target_point is not None:
-            dx = target_point[0] - initial_point[0]
-            dy = target_point[1] - initial_point[1]
+            dx = format_input(target_point[0] - initial_point[0])
+            dy = format_input(target_point[1] - initial_point[1])
             self.theta = atan2(dy, dx)
-            # Assume flat arc at midpoint: v0 from dx and dy under gravity
             self.v0 = sqrt((self.g * dx**2) / (2 * cos(self.theta)**2 * (dx * tan(self.theta) - dy)))
             self.v0x = self.v0 * cos(self.theta)
             self.v0y = self.v0 * sin(self.theta)
 
         elif range_ is not None and impact_height is not None:
-            # Assume symmetric arc shape from y0 to impact_height
+            r = format_input(range_)
+            h = format_input(impact_height)
             best_theta = None
             min_error = float('inf')
             for deg in range(5, 86):
-                th = radians(deg)
+                th = deg * (pi / 180)
                 try:
-                    v0 = sqrt((self.g * range_**2) / (2 * cos(th)**2 * (range_ * tan(th) + self.y0 - impact_height)))
-                    y_calc = self.y0 + tan(th) * range_ - (self.g * range_**2) / (2 * v0**2 * cos(th)**2)
-                    err = abs(y_calc - impact_height)
+                    v0 = sqrt((self.g * r**2) / (2 * cos(th)**2 * (r * tan(th) + self.y0 - h)))
+                    y_calc = self.y0 + tan(th) * r - (self.g * r**2) / (2 * v0**2 * cos(th)**2)
+                    err = abs(y_calc - h)
                     if err < min_error:
                         best_theta, best_v0 = th, v0
                         min_error = err
@@ -201,22 +183,21 @@ class Projectile:
             self.v0y = self.v0 * sin(self.theta)
 
         elif apex_point is not None:
-            # Max height and x from apex
-            h = apex_point[1] - self.y0
-            x_half = apex_point[0]
+            h = format_input(apex_point[1] - self.y0)
+            x_half = format_input(apex_point[0])
             self.theta = atan2(h, x_half)
             self.v0 = sqrt((2 * self.g * h) / (sin(self.theta)**2))
             self.v0x = self.v0 * cos(self.theta)
             self.v0y = self.v0 * sin(self.theta)
 
         elif start is not None and end is not None and max_height is not None:
-            dx = end[0] - start[0]
-            h = max_height - start[1]
+            dx = format_input(end[0] - start[0])
+            h = format_input(max_height - start[1])
             self.theta = atan2(h, dx / 2)
             self.v0 = sqrt((2 * self.g * h) / (sin(self.theta)**2))
             self.v0x = self.v0 * cos(self.theta)
             self.v0y = self.v0 * sin(self.theta)
-            self.y0 = start[1]
+            self.y0 = format_input(start[1])
 
         else:
             raise ValueError("You must provide valid input combination to initialize the projectile.")
@@ -226,11 +207,11 @@ class Projectile:
         return (
             f"--- Projectile Info ---\n"
             f"Initial speed (v0): {self.v0:.4f} m/s\n"
-            f"Launch angle (theta): {round(N(radian_to_degree(self.theta)),2)}°\n"
+            f"Launch angle (theta): {radian_to_degree(self.theta):.2f}°\n"
             f"Horizontal velocity (v0x): {self.v0x:.4f} m/s\n"
             f"Vertical velocity (v0y): {self.v0y:.4f} m/s\n"
             f"Initial height (y0): {self.y0:.4f} m\n"
-            f"Gravity (g): {self.g} m/s²\n"
+            f"Gravity (g): {self.g:.4f} m/s²\n"
             f"\n--- Derived Quantities ---\n"
             f"Time of flight (flat): {self.time_of_flight():.4f} s\n"
             f"Time of flight (realistic): {self.time_of_flight_full():.4f} s\n"
@@ -239,21 +220,17 @@ class Projectile:
         )
 
 
-
     def time_of_flight(self):
         return (2 * self.v0y) / self.g
-    
+
+
     def time_of_flight_full(self):
-        """
-        Solves 0 = y0 + v0y * t - 0.5 * g * t²
-        Returns the positive root.
-        """
         a = -0.5 * self.g
         b = self.v0y
         c = self.y0
         discriminant = b**2 - 4 * a * c
 
-        if discriminant < 0:
+        if nominal_value(discriminant) < 0:
             raise ValueError("Projectile never reaches ground level")
 
         t1 = (-b + sqrt(discriminant)) / (2 * a)
@@ -263,37 +240,32 @@ class Projectile:
 
     def max_height(self):
         return self.y0 + (self.v0y ** 2) / (2 * self.g)
-    
+
+
     def range(self):
         return (self.v0 ** 2) * sin(2 * self.theta) / self.g
 
+
     def position(self, t, allow_outside=False):
-        """
-        Returns the position (x, y) of the projectile at time t.
-
-        Parameters:
-            t (float): Time in seconds
-            allow_outside (bool): If False, raise error if t is outside flight time
-
-        Returns:
-            tuple: (x, y) in meters
-
-        Raises:
-            ValueError: If t is outside [0, time_of_flight_full()] and allow_outside is False
-        """
+        t = format_input(t)
         t_max = self.time_of_flight_full()
-        if not allow_outside and (t < 0 or t > t_max):
+        if not allow_outside and (nominal_value(t) < 0 or nominal_value(t) > nominal_value(t_max)):
             raise ValueError(f"Time {t} s is outside of projectile's flight time [0, {t_max:.2f}]")
 
-        return self.position(t)
+        x = self.v0x * t
+        y = self.y0 + self.v0y * t - 0.5 * self.g * t ** 2
+        return (x, y)
+
 
     def velocity(self, t):
+        t = format_input(t)
         vx = self.v0x
         vy = self.v0y - self.g * t
         return (vx, vy)
 
+
     def trajectory_y(self, x):
-        """Calculates y as a function of x (without time)."""
+        x = format_input(x)
         return self.y0 + tan(self.theta) * x - (self.g / (2 * self.v0 ** 2 * cos(self.theta) ** 2)) * x ** 2
     
     def plot_trajectory(self, steps=100):

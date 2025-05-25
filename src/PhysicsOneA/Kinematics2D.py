@@ -235,27 +235,32 @@ class Projectile:
                  start=None,
                  end=None,
                  y0=0, g=gravity()):
+        """
+        Initializes a projectile motion object.
 
+        Possible input combinations (provide only one):
+
+        1. v0 (float, m/s) and theta (float, radians)
+        2. v0x (float, m/s) and v0y (float, m/s)
+        3. vector (Vector): 2D velocity vector
+        4. vector_pair (VectorPair): initial displacement
+        5. theta (float, radians) and time_of_flight (float, seconds)
+        6. max_height (float, meters) and range_ (float, meters)
+        7. range_ (float, meters) and flight_time (float, seconds)
+        8. initial_point and target_point: each [x, y] (float, meters)
+        9. range_ (float, meters) and impact_height (float, meters)
+        10. apex_point: [x, y] (float, meters)
+        11. start, end (each [x, y]) and max_height (float, meters)
+
+        Optional:
+            y0 (float): launch height (m)
+            g (float): gravity (m/s^2)
+
+        Automatically computes:
+            v0, theta, v0x, v0y
+        """
         self.y0 = y0
         self.g = g
-
-        def is_ufloat(x):
-            return hasattr(x, "nominal_value")
-
-        def smart_sqrt(x):
-            return usqrt(x) if is_ufloat(x) else sqrt(x)
-
-        def smart_sin(x):
-            return usin(x) if is_ufloat(x) else sin(x)
-
-        def smart_cos(x):
-            return ucos(x) if is_ufloat(x) else cos(x)
-
-        def smart_tan(x):
-            return utan(x) if is_ufloat(x) else tan(x)
-
-        def smart_atan2(y, x):
-            return uatan2(y, x) if is_ufloat(y) or is_ufloat(x) else atan2(y, x)
 
         if vector is not None:
             vec = vector.getVector()
@@ -358,15 +363,39 @@ class Projectile:
         else:
             raise ValueError("You must provide valid input combination to initialize the projectile.")
     def _format_value(self, value):
+        """
+        Format a numeric value with or without uncertainty for display.
+
+        Parameters:
+            value (float or UFloat): A numeric value, possibly with uncertainty.
+                - Units: arbitrary (context-dependent)
+
+        Returns:
+            str: Formatted string of the value rounded to 4 decimal places.
+        """
         if hasattr(value, 'nominal_value'):
             return f"{value:.4f}"
         return f"{float(value):.4f}"
 
     def __str__(self):
+        """
+        Return a formatted summary of the projectile's parameters and derived properties.
+
+        Returns:
+            str: A human-readable string listing:
+                - Initial speed (m/s)
+                - Launch angle (degrees)
+                - Initial velocity components (v0x, v0y) in m/s
+                - Initial height y0 (m)
+                - Gravitational acceleration (m/s^2)
+                - Time of flight (s)
+                - Maximum height (m)
+                - Range (m)
+        """
         return (
             f"--- Projectile Info ---\n"
             f"Initial speed (v0): {self._format_value(self.v0)} m/s\n"
-            f"Launch angle (theta): {round(N(radian_to_degree(self.theta)),2)}°\n"
+            f"Launch angle (theta): {round(N(radian_to_degree(self.theta)),2)}\u00b0\n"
             f"Horizontal velocity (v0x): {self._format_value(self.v0x)} m/s\n"
             f"Vertical velocity (v0y): {self._format_value(self.v0y)} m/s\n"
             f"Initial height (y0): {self._format_value(self.y0)} m\n"
@@ -379,9 +408,21 @@ class Projectile:
         )
 
     def time_of_flight(self):
+        """
+        Calculate the time of flight assuming the projectile lands at the initial height.
+
+        Returns:
+            float or UFloat: Time in seconds (s) until the projectile returns to height y0.
+        """
         return (2 * self.v0y) / self.g
 
     def time_of_flight_full(self):
+        """
+        Calculate the full flight duration until the projectile hits the ground (y=0).
+
+        Returns:
+            float or UFloat: Time in seconds (s) from launch to ground impact.
+        """
         a = -0.5 * self.g
         b = self.v0y
         c = self.y0
@@ -394,27 +435,59 @@ class Projectile:
         return max(t1, t2)
 
     def max_height(self):
+        """
+        Compute the maximum vertical height reached by the projectile.
+
+        Returns:
+            float or UFloat: Maximum height in meters (m).
+        """
         return self.y0 + (self.v0y ** 2) / (2 * self.g)
 
     def range(self):
+        """
+        Calculate the horizontal distance traveled until the projectile lands.
+
+        Returns:
+            float or UFloat: Horizontal range in meters (m).
+        """
         return (self.v0 ** 2) * smart_sin(2 * self.theta) / self.g
 
     def position(self, t, allow_outside=False):
+        """
+        Get the position (x, y) of the projectile at time t.
+
+        Parameters:
+            t (float): Time since launch in seconds (s).
+            allow_outside (bool): If False, restricts t to within the flight time.
+
+        Returns:
+            Tuple[float or UFloat, float or UFloat]: Position (x, y) in meters (m).
+        """
         t_max = self.time_of_flight_full()
         t_max_val = t_max.nominal_value if hasattr(t_max, 'nominal_value') else t_max
         if not allow_outside and (t < 0 or t > t_max_val):
             raise ValueError(f"Time {t} s is outside of projectile's flight time [0, {t_max_val:.2f}]")
         return (self.x(t), self.y(t))
 
-    def velocity(self, t):
-        vx = self.v0x
-        vy = self.v0y - self.g * t
-        return (vx, vy)
-
     def trajectory_y(self, x):
+        """
+        Calculate the vertical position y as a function of horizontal position x.
+
+        Parameters:
+            x (float): Horizontal distance in meters (m).
+
+        Returns:
+            float or UFloat: Vertical position y(x) in meters (m).
+        """
         return self.y0 + smart_tan(self.theta) * x - (self.g / (2 * self.v0 ** 2 * smart_cos(self.theta) ** 2)) * x ** 2
 
     def plot_trajectory(self, steps=100):
+        """
+        Plot the projectile's 2D trajectory (x vs y).
+
+        Parameters:
+            steps (int): Number of sample points used to compute the curve.
+        """
         t_max = self.time_of_flight()
         t_max_val = t_max.nominal_value if hasattr(t_max, 'nominal_value') else t_max
         times = [i * t_max_val / steps for i in range(steps + 1)]
@@ -430,6 +503,12 @@ class Projectile:
         plt.show()
 
     def plot_y_over_time(self, steps=100):
+        """
+        Plot vertical position y(t) over time.
+
+        Parameters:
+            steps (int): Number of time samples.
+        """
         t_max = self.time_of_flight_full()
         t_max_val = t_max.nominal_value if hasattr(t_max, 'nominal_value') else t_max
         times = [i * t_max_val / steps for i in range(steps + 1)]
@@ -444,6 +523,12 @@ class Projectile:
         plt.show()
 
     def plot_x_over_time(self, steps=100):
+        """
+        Plot horizontal position x(t) over time.
+
+        Parameters:
+            steps (int): Number of time samples.
+        """
         t_max = self.time_of_flight_full()
         t_max_val = t_max.nominal_value if hasattr(t_max, 'nominal_value') else t_max
         times = [i * t_max_val / steps for i in range(steps + 1)]
@@ -458,6 +543,12 @@ class Projectile:
         plt.show()
 
     def plot_velocity_over_time(self, steps=100):
+        """
+        Plot the velocity components vx(t) and vy(t) over time.
+
+        Parameters:
+            steps (int): Number of time samples.
+        """
         t_max = self.time_of_flight_full()
         t_max_val = t_max.nominal_value if hasattr(t_max, 'nominal_value') else t_max
         times = [i * t_max_val / steps for i in range(steps + 1)]
@@ -475,32 +566,115 @@ class Projectile:
         plt.show()
 
     def get_initial_vector(self):
+        """
+        Return the initial velocity vector [v0x, v0y].
+
+        Returns:
+            Vector: The initial velocity vector (m/s).
+        """
         return Vector([self.v0x, self.v0y])
 
     def x(self, t):
+        """
+        Compute horizontal position x at time t.
+
+        Parameters:
+            t (float): Time in seconds (s).
+
+        Returns:
+            float or UFloat: Horizontal position x(t) in meters (m).
+        """
         return self.v0x * t
 
     def y(self, t):
+        """
+        Compute vertical position y at time t.
+
+        Parameters:
+            t (float): Time in seconds (s).
+
+        Returns:
+            float or UFloat: Vertical position y(t) in meters (m).
+        """
         return self.v0y * t - 0.5 * self.g * t**2 + self.y0
 
     def vx(self, t):
+        """
+        Get horizontal velocity component (constant).
+
+        Parameters:
+            t (float): Time (ignored, included for consistency).
+
+        Returns:
+            float or UFloat: Horizontal velocity vx in m/s.
+        """
         return self.v0x
 
     def vy(self, t):
+        """
+        Compute vertical velocity at time t.
+
+        Parameters:
+            t (float): Time in seconds (s).
+
+        Returns:
+            float or UFloat: Vertical velocity vy(t) in m/s.
+        """
         return self.v0y - self.g * t
 
     def vy_squared(self, y):
+        """
+        Compute squared vertical velocity at a specific height.
+
+        Parameters:
+            y (float): Vertical position in meters (m).
+
+        Returns:
+            float or UFloat: vy^2 at height y (m^2/s^2).
+        """
         return self.v0y**2 - 2 * self.g * (y - self.y0)
 
     def v_total_squared(self, y):
+        """
+        Compute total speed squared at a specific height.
+
+        Parameters:
+            y (float): Vertical position in meters (m).
+
+        Returns:
+            float or UFloat: v^2 at height y (m^2/s^2).
+        """
         return self.v0**2 - 2 * self.g * (y - self.y0)
 
     def y_from_x(self, x):
+        """
+        Calculate vertical position y based on horizontal distance x using the trajectory equation.
+
+        Parameters:
+            x (float): Horizontal distance in meters (m).
+
+        Returns:
+            float or UFloat: Vertical position y in meters (m).
+        """
         return self.y0 + smart_tan(self.theta) * x - (self.g / (2 * self.v0**2 * smart_cos(self.theta)**2)) * x**2
 
-
 class CircularMotion:
-    def __init__(self, *, r=None, T=None, v=None, v_func=None):
+    def __init__(self, *, r: Union[float, UFloat] = None, T: Union[float, UFloat] = None, v: Union[float, UFloat] = None, v_func=None):
+        """
+        Circular motion handler that supports both exact and uncertainty-aware values.
+
+        Parameters:
+            r (float or UFloat, optional): Radius of the circular path [m].
+            T (float or UFloat, optional): Period of one revolution [s].
+            v (float or UFloat, optional): Tangential velocity [m/s]. If not provided, computed using r and T.
+            v_func (sympy expression, optional): Time-dependent velocity function v(t) [m/s].
+
+        Notes:
+            You can provide:
+                - r and T: computes v automatically.
+                - v and r: computes centripetal acceleration.
+                - v_func: computes symbolic tangential acceleration over time.
+        """
         self.r = r
         self.T = T
         self.v = v
@@ -509,56 +683,107 @@ class CircularMotion:
 
         if self.v is None:
             if self.r is not None and self.T is not None:
-                self.v = Float((2 * pi * self.r) / self.T)
+                self.v = (2 * pi * self.r) / self.T
             elif self.r is None and self.T is not None:
                 raise ValueError("Cannot compute velocity: radius (r) is missing.")
             elif self.r is not None and self.T is None:
                 raise ValueError("Cannot compute velocity: period (T) is missing.")
 
-    def velocity(self):
+    def velocity(self) -> Union[float, UFloat]:
+        """
+        Returns the tangential velocity v.
+
+        Formula:
+            v = (2πr) / T
+
+        Returns:
+            float or UFloat: Tangential velocity [m/s]
+        """
         if self.v is not None:
             return self.v
         elif self.r is not None and self.T is not None:
-            return Float((2 * pi * self.r) / self.T)
+            return (2 * pi * self.r) / self.T
         else:
             raise ValueError("Missing values: Provide either v, or both r and T.")
 
-    def centripetal_acceleration(self):
+    def centripetal_acceleration(self) -> Union[float, UFloat]:
+        """
+        Returns the centripetal acceleration a_c.
+
+        Formula:
+            a_c = v² / r
+
+        Returns:
+            float or UFloat: Centripetal acceleration [m/s²]
+
+        Raises:
+            ValueError: If radius r is not provided.
+        """
         v = self.velocity()
         if self.r is None:
             raise ValueError("Radius r is required to compute centripetal acceleration.")
-        return Float(v**2 / self.r)
+        return (v**2) / self.r
 
     def tangential_acceleration(self):
+        """
+        Returns the symbolic expression for tangential acceleration a_T.
+
+        Formula:
+            a_T = d|v(t)| / dt
+
+        Returns:
+            sympy expression: Tangential acceleration [m/s²]
+
+        Raises:
+            ValueError: If no symbolic v_func is provided.
+
+        Example:
+            t = symbols('t')
+            v_func = 5 * sin(t)
+        """
         if self.v_func is None:
             raise ValueError("A time-dependent velocity function v(t) is required for tangential acceleration.")
         return diff(abs(self.v_func), self.t)
 
-    def critical_period_for_weightlessness(self, g=gravity()):
+    def critical_period_for_weightlessness(self, g: Union[float, UFloat] = gravity()) -> Union[float, UFloat]:
+        """
+        Computes the critical period T at which centripetal acceleration equals gravity (weightlessness).
+
+        Formula:
+            T = sqrt((4π²r) / g)
+
+        Parameters:
+            g (float or UFloat): Gravitational acceleration [m/s²]
+
+        Returns:
+            float or UFloat: Critical period T [s]
+
+        Raises:
+            ValueError: If radius r is not provided.
+        """
         if self.r is None:
             raise ValueError("Radius r is required to compute the critical period.")
-        
-        T_critical = sqrt((4 * pi**2 * self.r) / g)
-        return Float(T_critical)
 
-    def _format_value(self, value):
-        if hasattr(value, 'nominal_value'):
-            return f"{value:.4f}"
         try:
-            return f"{float(value):.4f}"
-        except:
-            return str(value)
+            if isinstance(self.r, UFloat) or isinstance(g, UFloat):
+                return usqrt((4 * pi**2 * self.r) / g)
+        except Exception:
+            pass
+        return sqrt((4 * pi**2 * self.r) / g)
 
     def __str__(self):
+        """
+        Returns a string representation of the circular motion object's parameters and results.
+        """
         try:
             v_val = self.velocity()
-            v_str = f"v = {self._format_value(v_val)} m/s"
+            v_str = f"v = {v_val:.4f} m/s"
         except:
             v_str = "v = ?"
 
         try:
             ac_val = self.centripetal_acceleration()
-            ac_str = f"centripetal acceleration = {self._format_value(ac_val)} m/s²"
+            ac_str = f"centripetal acceleration = {ac_val:.4f} m/s²"
         except:
             ac_str = "centripetal acceleration = ?"
 
@@ -570,9 +795,8 @@ class CircularMotion:
 
         try:
             T_crit = self.critical_period_for_weightlessness()
-            T_crit_val = T_crit.nominal_value if hasattr(T_crit, 'nominal_value') else float(T_crit)
-            T_crit_hours = T_crit_val / 3600
-            crit_str = f"Critical period for weightlessness: {self._format_value(T_crit)} seconds (~{T_crit_hours:.2f} hours)"
+            T_crit_hours = float(nominal_value(T_crit)) / 3600
+            crit_str = f"Critical period for weightlessness: {T_crit:.2f} seconds (~{T_crit_hours:.2f} hours)"
         except:
             crit_str = "Critical period for weightlessness: ?"
 
@@ -587,6 +811,24 @@ class CircularMotion:
         )
 
 class RelativeMotion:
+    """
+    Models relative motion between frames of reference using velocity and acceleration vectors.
+
+    This class supports values with or without uncertainty (using `UFloat`).
+
+    Parameters (all optional, keyword-only):
+        v_ps_prime (Vector | list): Velocity of P relative to S′ [m/s].
+        v_sprime_s (Vector | list): Velocity of S′ relative to S [m/s].
+        a_ps_prime (Vector | list): Acceleration of P relative to S′ [m/s²].
+        a_sprime_s (Vector | list): Acceleration of S′ relative to S [m/s²].
+        velocity_vectors (tuple): Tuple of two velocity vectors [v_ps_prime, v_sprime_s].
+        acceleration_vectors (tuple): Tuple of two acceleration vectors [a_ps_prime, a_sprime_s].
+    
+    Methods:
+        relative_velocity(): Computes relative velocity vector [m/s].
+        relative_acceleration(): Computes relative acceleration vector [m/s²].
+    """
+
     def __init__(self, *,
                  v_ps_prime=None, v_sprime_s=None,
                  a_ps_prime=None, a_sprime_s=None,
@@ -615,23 +857,51 @@ class RelativeMotion:
             self.a_ps_prime = ensure_vector(a_ps_prime) if a_ps_prime is not None else None
             self.a_sprime_s = ensure_vector(a_sprime_s) if a_sprime_s is not None else None
 
-    def relative_velocity(self):
+    def relative_velocity(self) -> Vector:
+        """
+        Computes the total velocity of point P relative to reference frame S.
+
+        Formula:
+            v_PS = v_PS′ + v_S′S
+
+        Returns:
+            Vector: Relative velocity vector [m/s].
+
+        Raises:
+            ValueError: If required velocity vectors are not provided.
+        """
         if self.v_ps_prime is None or self.v_sprime_s is None:
             raise ValueError("Both v_ps_prime and v_sprime_s must be provided.")
-        return self.v_ps_prime.getVector() + self.v_sprime_s.getVector()
+        return self.v_ps_prime + self.v_sprime_s
 
-    def relative_acceleration(self):
+    def relative_acceleration(self) -> Vector:
+        """
+        Computes the total acceleration of point P relative to reference frame S.
+
+        Formula:
+            a_PS = a_PS′ + a_S′S
+
+        Returns:
+            Vector: Relative acceleration vector [m/s²].
+
+        Raises:
+            ValueError: If required acceleration vectors are not provided.
+        """
         if self.a_ps_prime is None or self.a_sprime_s is None:
             raise ValueError("Both a_ps_prime and a_sprime_s must be provided.")
-        return self.a_ps_prime.getVector() + self.a_sprime_s.getVector()
+        return self.a_ps_prime + self.a_sprime_s
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """
+        Returns:
+            str: Human-readable summary of velocity and acceleration results.
+        """
         lines = ["--- Relative Motion ---"]
         if self.v_ps_prime and self.v_sprime_s:
             v_result = self.relative_velocity()
             lines += [
-                f"v_PS′ = {self.v_ps_prime.getVector()}",
-                f"v_S′S = {self.v_sprime_s.getVector()}",
+                f"v_PS′ = {self.v_ps_prime}",
+                f"v_S′S = {self.v_sprime_s}",
                 f"=> v_PS = {v_result}"
             ]
         else:
@@ -640,8 +910,8 @@ class RelativeMotion:
         if self.a_ps_prime and self.a_sprime_s:
             a_result = self.relative_acceleration()
             lines += [
-                f"a_PS′ = {self.a_ps_prime.getVector()}",
-                f"a_S′S = {self.a_sprime_s.getVector()}",
+                f"a_PS′ = {self.a_ps_prime}",
+                f"a_S′S = {self.a_sprime_s}",
                 f"=> a_PS = {a_result}"
             ]
         else:

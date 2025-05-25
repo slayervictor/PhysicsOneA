@@ -1,5 +1,13 @@
 from PhysicsOneA.dependencies import *
 
+def format_input(inp):
+    if isinstance(inp, UFloat):
+        return inp
+    elif isinstance(inp,float):
+        return ufloat(inp,0)
+    else:
+        return inp
+
 def speed_converter(value, from_unit='m/s', to_unit='km/h'):
    """
    Convert between km/s, m/h, m/s and km/h.

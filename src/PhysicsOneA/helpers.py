@@ -3,7 +3,7 @@ from PhysicsOneA.dependencies import *
 def format_input(inp):
     if isinstance(inp, UFloat):
         return inp
-    elif isinstance(inp,float):
+    elif isinstance(inp,Float):
         return ufloat(inp,0)
     else:
         return inp

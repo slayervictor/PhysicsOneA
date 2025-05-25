@@ -1,12 +1,13 @@
 from PhysicsOneA.dependencies import *
 
-def format_input(inp):
+def format_input(inp: Union[float, int, UFloat]) -> UFloat:
     if isinstance(inp, UFloat):
         return inp
-    elif isinstance(inp,Float):
-        return ufloat(inp,0)
+    elif isinstance(inp, (int, float)):
+        return ufloat(inp, 0)
     else:
-        return inp
+        raise TypeError(f"Unsupported input type: {type(inp)}")
+
 
 def speed_converter(value, from_unit='m/s', to_unit='km/h'):
    """

@@ -2,20 +2,21 @@ from PhysicsOneA.dependencies import *
 from PhysicsOneA.helpers import *
 
 class Vector:
-    def __init__(self, vec):
-        if not isinstance(vec, list) and not isinstance(vec, Vector):
-            raise TypeError("vec must be a list")
-        if isinstance(vec,Vector):
+    def __init__(self, vec: Union[list, 'Vector']):
+        if isinstance(vec, Vector):
             self.vec = vec.getVector()
+        elif isinstance(vec, list):
+            # Convert list to a unumpy array with uncertainties
+            self.vec = array(vec)
         else:
-            self.vec = Matrix(vec)
-    
+            raise TypeError("vec must be a list or a Vector instance")
+
     def getVector(self):
         return self.vec
 
     def length(self):
         return sqrt(usum(self.vec**2))
-    
+
     def __str__(self):
         return f"Vector: {self.vec}\nLength: {self.length()}"
 
@@ -27,65 +28,47 @@ class Time:
         return self.period[1]-self.period[0]
 
 class VectorPair:
-    def __init__(self, vec1, vec2):
-        if not isinstance(vec1, list) and not isinstance(vec1, Vector) or not isinstance(vec2, list) and not isinstance(vec2, Vector):
-            raise TypeError("vec1 and vec2 must be lists")
-        if isinstance(vec1,list):
-            self.vec1 = Matrix(vec1)
-        else:
-            self.vec1 = vec1.getVector()
-        if isinstance(vec2,list):
-            self.vec2 = Matrix(vec2)
-        else:
-            self.vec2 = vec2.getVector()
+    def __init__(self, vec1: Union[list, Vector], vec2: Union[list, Vector]):
+        if not isinstance(vec1, (list, Vector)) or not isinstance(vec2, (list, Vector)):
+            raise TypeError("vec1 and vec2 must be lists or Vector instances")
+        
+        self.vec1 = array(vec1) if isinstance(vec1, list) else vec1.getVector()
+        self.vec2 = array(vec2) if isinstance(vec2, list) else vec2.getVector()
     
     def getPair(self):
-        return (Vector(list(self.vec1)).getVector(),Vector(list(self.vec2)).getVector())
+        return (Vector(self.vec1.tolist()).getVector(), Vector(self.vec2.tolist()).getVector())
 
-    def getVector(self,index=None):
+    def getVector(self, index=None):
         if index == 0:
-            return Vector(list(self.vec1)).getVector()
+            return Vector(self.vec1.tolist()).getVector()
         elif index == 1:
-            return Vector(list(self.vec2)).getVector()
+            return Vector(self.vec2.tolist()).getVector()
+        else:
+            raise ValueError("Index must be 0 or 1")
 
     def displacement(self):
         return self.vec2 - self.vec1
 
-    def direction_angle(vector_pair):
+    def direction_angle(self):
         """
         Calculates the direction angle (α) in degrees between two vectors
         using the arctangent of the displacement's y and x components.
 
         This angle represents the orientation of the displacement vector 
-        from the first vector to the second in 2D space, based on:
-            α = tan⁻¹(Vy / Vx)
-
-        Parameters:
-            vector_pair (VectorPair): An instance of the VectorPair class
-                                    containing two vectors.
-
-        Returns:
-            float: The direction angle α in degrees.
-
-        Raises:
-            IndexError: If vectors are not at least 2-dimensional.
-            ZeroDivisionError: If the x-component of the displacement is zero.
+        from the first vector to the second in 2D space.
         """
-        # Get displacement vector
-        disp = vector_pair.displacement()
-        
-        # Ensure vector has at least two dimensions
+        disp = self.displacement()
+
         if len(disp) < 2:
             raise IndexError("Vectors must have at least two dimensions for angle calculation.")
 
         Vx = disp[0]
         Vy = disp[1]
 
-        # Compute angle in radians using arctangent
-        angle_rad = atan(Vy / Vx)
+        # atan2 handles x=0 case internally, with correct quadrant
+        angle_rad = atan2(Vy, Vx)
 
-        # Convert to degrees for readability
-        return degrees(N(angle_rad))
+        return degrees(angle_rad)
 
     def __str__(self):
         pair = self.getPair()
@@ -131,8 +114,8 @@ class Projectile:
         Automatically computes:
             v0, theta, v0x, v0y
         """
-        self.y0 = y0
-        self.g = g
+        self.y0 = format_input(y0)
+        self.g = format_input(g)
 
         if vector is not None:
             vec = vector.getVector()

@@ -1,61 +1,205 @@
 from PhysicsOneA.dependencies import *
 from PhysicsOneA.helpers import *
+def is_ufloat(x):
+    return hasattr(x, "nominal_value")
+
+def smart_sqrt(x):
+    return usqrt(x) if is_ufloat(x) else sqrt(x)
+
+def smart_sin(x):
+    return usin(x) if is_ufloat(x) else sin(x)
+
+def smart_cos(x):
+    return ucos(x) if is_ufloat(x) else cos(x)
+
+def smart_tan(x):
+    return utan(x) if is_ufloat(x) else tan(x)
+
+def smart_atan2(y, x):
+    return uatan2(y, x) if is_ufloat(y) or is_ufloat(x) else atan2(y, x)
 
 class Vector:
-    def __init__(self, vec):
+    """
+    Represents a mathematical vector that can include uncertainties in its components.
+    Uses sympy.Matrix for internal representation and uncertainties.ufloat for error propagation.
+    """
+    def __init__(self, vec: Union[list, 'Vector']):
+        """
+        Initializes a Vector object.
+
+        Args:
+            vec (list or Vector): A list of numerical values or UFloat values, or another Vector.
+        Raises:
+            TypeError: If input is not a list or Vector.
+        """
         if not isinstance(vec, list) and not isinstance(vec, Vector):
-            raise TypeError("vec must be a list")
+            raise TypeError("vec must be a list or Vector")
         if isinstance(vec, Vector):
             self.vec = vec.getVector()
         else:
-            self.vec = Matrix(vec)
-    
+            # Ensure all values are UFloat
+            self.vec = Matrix([
+                ufloat(val, 0) if not isinstance(val, UFloat) else val
+                for val in vec
+            ])
+
     def getVector(self):
+        """
+        Returns the underlying sympy.Matrix representing the vector.
+
+        Returns:
+            sympy.Matrix: The vector components.
+        """
         return self.vec
 
     def length(self):
-        # Handle ufloats using uncertainties.umath
-        norm_squared = sum(component**2 for component in self.vec)
-        if hasattr(norm_squared, 'nominal_value'):
-            return sqrt(norm_squared)  # uncertainties.sqrt from *
-        return self.vec.norm()
-    
+        """
+        Calculates the Euclidean length (norm) of the vector with uncertainty propagation.
+
+        Returns:
+            UFloat: The length of the vector with uncertainty.
+        """
+        return sqrt(sum(v**2 for v in self.vec))
+
     def __str__(self):
+        """
+        Returns a string representation of the vector and its length.
+
+        Returns:
+            str: The formatted string.
+        """
         return f"Vector: {self.vec}\nLength: {self.length()}"
 
 class Time:
-    def __init__(self, _from, _to):
-        self.period = [_from, _to]
-    
+    """
+    Represents a time interval, allowing uncertainty in the start and end times.
+    """
+    def __init__(self, _from: Union[float, UFloat], _to: Union[float, UFloat]):
+        """
+        Initializes a Time object.
+
+        Args:
+            _from (float or UFloat): The start time (can include uncertainty).
+            _to (float or UFloat): The end time (can include uncertainty).
+        """
+        self.period = [
+            ufloat(_from, 0) if not isinstance(_from, UFloat) else _from,
+            ufloat(_to, 0) if not isinstance(_to, UFloat) else _to
+        ]
+
     def delta_time(self):
+        """
+        Calculates the duration between start and end times with uncertainty.
+
+        Returns:
+            UFloat: The time difference with uncertainty.
+        """
         return self.period[1] - self.period[0]
 
+class Vector:
+    """
+    Simple wrapper class for a mathematical vector using sympy.Matrix.
+    """
+
+    def __init__(self, values):
+        """
+        Initializes the Vector with a list of values.
+
+        Parameters:
+            values (list): A list of numeric or ufloat elements representing a vector.
+        """
+        self.vec = Matrix(values)
+
+    def getVector(self):
+        """
+        Returns the underlying vector (as a sympy Matrix).
+        """
+        return self.vec
+
+    def __str__(self):
+        """
+        String representation of the vector.
+        """
+        return str(self.vec)
+
 class VectorPair:
+    """
+    A class to represent a pair of vectors, useful for calculating displacement and direction angle.
+    Supports vectors with uncertainties (ufloat).
+    """
+
     def __init__(self, vec1, vec2):
-        if not isinstance(vec1, list) and not isinstance(vec1, Vector) or not isinstance(vec2, list) and not isinstance(vec2, Vector):
-            raise TypeError("vec1 and vec2 must be lists")
-        if isinstance(vec1, list):
-            self.vec1 = Matrix(vec1)
-        else:
-            self.vec1 = vec1.getVector()
-        if isinstance(vec2, list):
-            self.vec2 = Matrix(vec2)
-        else:
-            self.vec2 = vec2.getVector()
+        """
+        Initializes the VectorPair with two vectors.
+
+        Parameters:
+            vec1 (list or Vector): The first vector (list of values or Vector object).
+            vec2 (list or Vector): The second vector (list of values or Vector object).
+
+        Raises:
+            TypeError: If inputs are not lists or Vector instances.
+        """
+        if not isinstance(vec1, list) and not isinstance(vec1, Vector):
+            raise TypeError("vec1 must be a list or a Vector")
+        if not isinstance(vec2, list) and not isinstance(vec2, Vector):
+            raise TypeError("vec2 must be a list or a Vector")
+
+        self.vec1 = Matrix(vec1) if isinstance(vec1, list) else vec1.getVector()
+        self.vec2 = Matrix(vec2) if isinstance(vec2, list) else vec2.getVector()
     
     def getPair(self):
-        return (Vector(list(self.vec1)).getVector(),Vector(list(self.vec2)).getVector())
+        """
+        Returns the pair of vectors as a tuple of sympy Matrices.
+
+        Returns:
+            tuple: (Vector object for vec1, Vector object for vec2)
+        """
+        return (Vector(list(self.vec1)).getVector(), Vector(list(self.vec2)).getVector())
 
     def getVector(self, index=None):
+        """
+        Returns one of the two vectors by index.
+
+        Parameters:
+            index (int): 0 for the first vector, 1 for the second.
+
+        Returns:
+            sympy.Matrix: The requested vector.
+
+        Raises:
+            ValueError: If index is not 0 or 1.
+        """
         if index == 0:
             return Vector(list(self.vec1)).getVector()
         elif index == 1:
             return Vector(list(self.vec2)).getVector()
+        else:
+            raise ValueError("Index must be 0 or 1")
 
     def displacement(self):
+        """
+        Computes the displacement vector from vec1 to vec2.
+
+        Returns:
+            sympy.Matrix: The displacement vector (vec2 - vec1).
+        """
         return self.vec2 - self.vec1
 
     def direction_angle(vector_pair):
+        """
+        Calculates the angle of displacement (in degrees) from vec1 to vec2 in the X-Y plane.
+
+        If components have uncertainties (ufloat), the result will also carry uncertainty.
+
+        Parameters:
+            vector_pair (VectorPair): An instance of VectorPair.
+
+        Returns:
+            float or ufloat: The direction angle in degrees.
+
+        Raises:
+            IndexError: If the vectors are less than 2D.
+        """
         disp = vector_pair.displacement()
         
         if len(disp) < 2:
@@ -64,17 +208,16 @@ class VectorPair:
         Vx = disp[0]
         Vy = disp[1]
 
-        # Use uncertainty-aware atan2 if components have uncertainties
-        if hasattr(Vx, 'nominal_value') or hasattr(Vy, 'nominal_value'):
-            angle_rad = atan2(Vy, Vx)  # uncertainties.umath.atan2 from *
-            return angle_rad * 180 / pi
-        else:
-            angle_rad = atan(Vy / Vx)
-            return degrees(N(angle_rad))
+        angle_rad = atan2(Vy, Vx)
+        return angle_rad * 180 / pi
 
     def __str__(self):
+        """
+        Returns a string representation of the vector pair.
+        """
         pair = self.getPair()
         return f"Vector Pair:\n  First: {pair[0]}\n  Second: {pair[1]}"
+
 
 class Projectile:
     def __init__(self, *,
@@ -92,41 +235,59 @@ class Projectile:
                  start=None,
                  end=None,
                  y0=0, g=gravity()):
-        
+
         self.y0 = y0
         self.g = g
+
+        def is_ufloat(x):
+            return hasattr(x, "nominal_value")
+
+        def smart_sqrt(x):
+            return usqrt(x) if is_ufloat(x) else sqrt(x)
+
+        def smart_sin(x):
+            return usin(x) if is_ufloat(x) else sin(x)
+
+        def smart_cos(x):
+            return ucos(x) if is_ufloat(x) else cos(x)
+
+        def smart_tan(x):
+            return utan(x) if is_ufloat(x) else tan(x)
+
+        def smart_atan2(y, x):
+            return uatan2(y, x) if is_ufloat(y) or is_ufloat(x) else atan2(y, x)
 
         if vector is not None:
             vec = vector.getVector()
             self.v0x, self.v0y = vec[0], vec[1]
-            self.v0 = sqrt(self.v0x**2 + self.v0y**2)
-            self.theta = atan2(self.v0y, self.v0x)
+            self.v0 = smart_sqrt(self.v0x**2 + self.v0y**2)
+            self.theta = smart_atan2(self.v0y, self.v0x)
 
         elif vector_pair is not None:
             disp = vector_pair.displacement()
             self.v0x, self.v0y = disp[0], disp[1]
-            self.v0 = sqrt(self.v0x**2 + self.v0y**2)
-            self.theta = atan2(self.v0y, self.v0x)
+            self.v0 = smart_sqrt(self.v0x**2 + self.v0y**2)
+            self.theta = smart_atan2(self.v0y, self.v0x)
 
         elif v0 is not None and theta is not None:
             self.v0 = v0
             self.theta = theta
-            self.v0x = v0 * cos(theta)
-            self.v0y = v0 * sin(theta)
+            self.v0x = v0 * smart_cos(theta)
+            self.v0y = v0 * smart_sin(theta)
 
         elif v0x is not None and v0y is not None:
             self.v0x = v0x
             self.v0y = v0y
-            self.v0 = sqrt(v0x**2 + v0y**2)
-            self.theta = atan2(v0y, v0x)
+            self.v0 = smart_sqrt(v0x**2 + v0y**2)
+            self.theta = smart_atan2(v0y, v0x)
 
         elif theta is not None and time_of_flight is not None:
             numerator = 0.5 * self.g * time_of_flight**2 - self.y0
-            denominator = time_of_flight * sin(theta)
+            denominator = time_of_flight * smart_sin(theta)
             self.v0 = numerator / denominator
             self.theta = theta
-            self.v0x = self.v0 * cos(theta)
-            self.v0y = self.v0 * sin(theta)
+            self.v0x = self.v0 * smart_cos(theta)
+            self.v0y = self.v0 * smart_sin(theta)
 
         elif max_height is not None and range_ is not None:
             best_theta = None
@@ -134,29 +295,29 @@ class Projectile:
             for deg in range(500, 860):
                 th = radians(deg / 100)
                 lhs = max_height / range_
-                rhs = (sin(th)**2) / (2 * sin(2 * th))
+                rhs = (smart_sin(th)**2) / (2 * smart_sin(2 * th))
                 err = abs(lhs - rhs)
                 if err < min_error:
                     best_theta = th
                     min_error = err
             self.theta = best_theta
-            self.v0 = sqrt((2 * self.g * max_height) / (sin(self.theta)**2))
-            self.v0x = self.v0 * cos(self.theta)
-            self.v0y = self.v0 * sin(self.theta)
+            self.v0 = smart_sqrt((2 * self.g * max_height) / (smart_sin(self.theta)**2))
+            self.v0x = self.v0 * smart_cos(self.theta)
+            self.v0y = self.v0 * smart_sin(self.theta)
 
         elif range_ is not None and time_of_flight is not None:
             self.v0x = range_ / time_of_flight
             self.v0y = (self.g * time_of_flight) / 2
-            self.v0 = sqrt(self.v0x**2 + self.v0y**2)
-            self.theta = atan2(self.v0y, self.v0x)
+            self.v0 = smart_sqrt(self.v0x**2 + self.v0y**2)
+            self.theta = smart_atan2(self.v0y, self.v0x)
 
         elif initial_point is not None and target_point is not None:
             dx = target_point[0] - initial_point[0]
             dy = target_point[1] - initial_point[1]
-            self.theta = atan2(dy, dx)
-            self.v0 = sqrt((self.g * dx**2) / (2 * cos(self.theta)**2 * (dx * tan(self.theta) - dy)))
-            self.v0x = self.v0 * cos(self.theta)
-            self.v0y = self.v0 * sin(self.theta)
+            self.theta = smart_atan2(dy, dx)
+            self.v0 = smart_sqrt((self.g * dx**2) / (2 * smart_cos(self.theta)**2 * (dx * smart_tan(self.theta) - dy)))
+            self.v0x = self.v0 * smart_cos(self.theta)
+            self.v0y = self.v0 * smart_sin(self.theta)
 
         elif range_ is not None and impact_height is not None:
             best_theta = None
@@ -164,8 +325,8 @@ class Projectile:
             for deg in range(5, 86):
                 th = radians(deg)
                 try:
-                    v0 = sqrt((self.g * range_**2) / (2 * cos(th)**2 * (range_ * tan(th) + self.y0 - impact_height)))
-                    y_calc = self.y0 + tan(th) * range_ - (self.g * range_**2) / (2 * v0**2 * cos(th)**2)
+                    v0 = smart_sqrt((self.g * range_**2) / (2 * smart_cos(th)**2 * (range_ * smart_tan(th) + self.y0 - impact_height)))
+                    y_calc = self.y0 + smart_tan(th) * range_ - (self.g * range_**2) / (2 * v0**2 * smart_cos(th)**2)
                     err = abs(y_calc - impact_height)
                     if err < min_error:
                         best_theta, best_v0 = th, v0
@@ -174,29 +335,28 @@ class Projectile:
                     continue
             self.theta = best_theta
             self.v0 = best_v0
-            self.v0x = self.v0 * cos(self.theta)
-            self.v0y = self.v0 * sin(self.theta)
+            self.v0x = self.v0 * smart_cos(self.theta)
+            self.v0y = self.v0 * smart_sin(self.theta)
 
         elif apex_point is not None:
             h = apex_point[1] - self.y0
             x_half = apex_point[0]
-            self.theta = atan2(h, x_half)
-            self.v0 = sqrt((2 * self.g * h) / (sin(self.theta)**2))
-            self.v0x = self.v0 * cos(self.theta)
-            self.v0y = self.v0 * sin(self.theta)
+            self.theta = smart_atan2(h, x_half)
+            self.v0 = smart_sqrt((2 * self.g * h) / (smart_sin(self.theta)**2))
+            self.v0x = self.v0 * smart_cos(self.theta)
+            self.v0y = self.v0 * smart_sin(self.theta)
 
         elif start is not None and end is not None and max_height is not None:
             dx = end[0] - start[0]
             h = max_height - start[1]
-            self.theta = atan2(h, dx / 2)
-            self.v0 = sqrt((2 * self.g * h) / (sin(self.theta)**2))
-            self.v0x = self.v0 * cos(self.theta)
-            self.v0y = self.v0 * sin(self.theta)
+            self.theta = smart_atan2(h, dx / 2)
+            self.v0 = smart_sqrt((2 * self.g * h) / (smart_sin(self.theta)**2))
+            self.v0x = self.v0 * smart_cos(self.theta)
+            self.v0y = self.v0 * smart_sin(self.theta)
             self.y0 = start[1]
 
         else:
             raise ValueError("You must provide valid input combination to initialize the projectile.")
-
     def _format_value(self, value):
         if hasattr(value, 'nominal_value'):
             return f"{value:.4f}"
@@ -220,42 +380,31 @@ class Projectile:
 
     def time_of_flight(self):
         return (2 * self.v0y) / self.g
-    
+
     def time_of_flight_full(self):
         a = -0.5 * self.g
         b = self.v0y
         c = self.y0
         discriminant = b**2 - 4 * a * c
-
-        if hasattr(discriminant, 'nominal_value'):
-            if discriminant.nominal_value < 0:
-                raise ValueError("Projectile never reaches ground level")
-        else:
-            if discriminant < 0:
-                raise ValueError("Projectile never reaches ground level")
-
-        sqrt_disc = sqrt(discriminant)  # uncertainties.sqrt if needed
+        sqrt_disc = usqrt(discriminant) if hasattr(discriminant, "nominal_value") else sqrt(discriminant)
         t1 = (-b + sqrt_disc) / (2 * a)
         t2 = (-b - sqrt_disc) / (2 * a)
-        
-        if hasattr(t1, 'nominal_value'):
+        if hasattr(t1, "nominal_value"):
             return t1 if t1.nominal_value > t2.nominal_value else t2
         return max(t1, t2)
 
     def max_height(self):
         return self.y0 + (self.v0y ** 2) / (2 * self.g)
-    
+
     def range(self):
-        return (self.v0 ** 2) * sin(2 * self.theta) / self.g
+        return (self.v0 ** 2) * smart_sin(2 * self.theta) / self.g
 
     def position(self, t, allow_outside=False):
         t_max = self.time_of_flight_full()
-        if not allow_outside:
-            t_max_val = t_max.nominal_value if hasattr(t_max, 'nominal_value') else t_max
-            if t < 0 or t > t_max_val:
-                raise ValueError(f"Time {t} s is outside of projectile's flight time [0, {t_max_val:.2f}]")
-
-        return self.position(t)
+        t_max_val = t_max.nominal_value if hasattr(t_max, 'nominal_value') else t_max
+        if not allow_outside and (t < 0 or t > t_max_val):
+            raise ValueError(f"Time {t} s is outside of projectile's flight time [0, {t_max_val:.2f}]")
+        return (self.x(t), self.y(t))
 
     def velocity(self, t):
         vx = self.v0x
@@ -263,13 +412,12 @@ class Projectile:
         return (vx, vy)
 
     def trajectory_y(self, x):
-        return self.y0 + tan(self.theta) * x - (self.g / (2 * self.v0 ** 2 * cos(self.theta) ** 2)) * x ** 2
-    
+        return self.y0 + smart_tan(self.theta) * x - (self.g / (2 * self.v0 ** 2 * smart_cos(self.theta) ** 2)) * x ** 2
+
     def plot_trajectory(self, steps=100):
         t_max = self.time_of_flight()
         t_max_val = t_max.nominal_value if hasattr(t_max, 'nominal_value') else t_max
         times = [i * t_max_val / steps for i in range(steps + 1)]
-        
         positions = [self.position(t) for t in times]
         xs = [pos[0].nominal_value if hasattr(pos[0], 'nominal_value') else pos[0] for pos in positions]
         ys = [pos[1].nominal_value if hasattr(pos[1], 'nominal_value') else pos[1] for pos in positions]
@@ -328,7 +476,7 @@ class Projectile:
 
     def get_initial_vector(self):
         return Vector([self.v0x, self.v0y])
-    
+
     def x(self, t):
         return self.v0x * t
 
@@ -348,7 +496,8 @@ class Projectile:
         return self.v0**2 - 2 * self.g * (y - self.y0)
 
     def y_from_x(self, x):
-        return self.y0 + tan(self.theta) * x - (self.g / (2 * self.v0**2 * cos(self.theta)**2)) * x**2
+        return self.y0 + smart_tan(self.theta) * x - (self.g / (2 * self.v0**2 * smart_cos(self.theta)**2)) * x**2
+
 
 class CircularMotion:
     def __init__(self, *, r=None, T=None, v=None, v_func=None):

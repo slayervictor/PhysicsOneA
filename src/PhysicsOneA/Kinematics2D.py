@@ -90,6 +90,25 @@ class Projectile:
                  start=None,
                  end=None,
                  y0=0, g=gravity()):
+        """
+        Initializes a projectile motion object.
+
+        Automatically computes v0, theta, v0x, v0y.
+
+        Supported input combinations:
+        1. v0 and theta
+        2. v0x and v0y
+        3. vector (velocity vector)
+        4. vector_pair (displacement vector)
+        5. theta and time_of_flight
+        6. max_height, range_, and impact_height
+        7. max_height and range_
+        8. range_ and time_of_flight
+        9. initial_point and target_point
+        10. range_ and impact_height
+        11. apex_point
+        12. start, end, and max_height
+        """
 
         self.y0 = format_input(y0)
         self.g = format_input(g)
@@ -126,6 +145,31 @@ class Projectile:
             self.v0 = numerator / denominator
             self.v0x = self.v0 * cos(self.theta)
             self.v0y = self.v0 * sin(self.theta)
+
+        # ✅ NEW: Best match for diver problem (y0, max_height, impact_height, and range)
+        elif max_height is not None and range_ is not None and impact_height is not None:
+            h = format_input(max_height)
+            r = format_input(range_)
+            yf = format_input(impact_height)
+            dy_up = h - self.y0
+            dy_down = h - yf
+
+            # Step 1: vertical velocity from y0 to max height
+            self.v0y = sqrt(2 * self.g * dy_up)
+
+            # Step 2: time up and time down
+            t_up = self.v0y / self.g
+            t_down = sqrt(2 * dy_down / self.g)
+
+            # Step 3: total flight time
+            T = t_up + t_down
+
+            # Step 4: horizontal velocity
+            self.v0x = r / T
+
+            # Step 5: total speed and angle
+            self.v0 = sqrt(self.v0x**2 + self.v0y**2)
+            self.theta = atan2(self.v0y, self.v0x)
 
         elif max_height is not None and range_ is not None:
             h = format_input(max_height)
@@ -200,7 +244,8 @@ class Projectile:
             self.y0 = format_input(start[1])
 
         else:
-            raise ValueError("You must provide valid input combination to initialize the projectile.")
+            raise ValueError("You must provide a valid input combination to initialize the projectile.")
+
 
 
     def __str__(self):
@@ -219,12 +264,15 @@ class Projectile:
             f"Range: {self.range():.4f} m"
         )
 
-
     def time_of_flight(self):
         return (2 * self.v0y) / self.g
 
 
     def time_of_flight_full(self):
+        """
+        Solves 0 = y0 + v0y * t - 0.5 * g * t²
+        Returns the positive root.
+        """
         a = -0.5 * self.g
         b = self.v0y
         c = self.y0
@@ -247,6 +295,19 @@ class Projectile:
 
 
     def position(self, t, allow_outside=False):
+        """
+        Returns the position (x, y) of the projectile at time t.
+
+        Parameters:
+            t (float): Time in seconds
+            allow_outside (bool): If False, raise error if t is outside flight time
+
+        Returns:
+            tuple: (x, y) in meters
+
+        Raises:
+            ValueError: If t is outside [0, time_of_flight_full()] and allow_outside is False
+        """
         t = format_input(t)
         t_max = self.time_of_flight_full()
         if not allow_outside and (nominal_value(t) < 0 or nominal_value(t) > nominal_value(t_max)):
@@ -265,6 +326,7 @@ class Projectile:
 
 
     def trajectory_y(self, x):
+        """Calculates y as a function of x (without time)."""
         x = format_input(x)
         return self.y0 + tan(self.theta) * x - (self.g / (2 * self.v0 ** 2 * cos(self.theta) ** 2)) * x ** 2
     
@@ -328,39 +390,55 @@ class Projectile:
     def get_initial_vector(self):
         return Vector([self.v0x, self.v0y])
 
-    # -- Horizontal position x(t) --
+    # Position as a function of time (horizontal)
     def x(self, t):
-        t = format_input(t)
+        """
+        Returns the horizontal position x(t) in meters at time t (seconds).
+        """
         return self.v0x * t
 
-    # -- Vertical position y(t) --
+    # Position as a function of time (vertical)
     def y(self, t):
-        t = format_input(t)
-        return self.v0y * t - 0.5 * self.g * t ** 2 + self.y0
+        """
+        Returns the vertical position y(t) in meters at time t (seconds), accounting for gravity.
+        """
+        return self.v0y * t - 0.5 * self.g * t**2 + self.y0
 
-    # -- Constant horizontal velocity vx(t) --
+    # Horizontal velocity (constant)
     def vx(self, t):
+        """
+        Returns the horizontal velocity vx(t) in m/s, which is constant.
+        """
         return self.v0x
 
-    # -- Vertical velocity vy(t) --
+    # Vertical velocity as a function of time
     def vy(self, t):
-        t = format_input(t)
+        """
+        Returns the vertical velocity vy(t) in m/s at time t (seconds), decreasing due to gravity.
+        """
         return self.v0y - self.g * t
 
-    # -- vy² at a given height --
+    # Squared vertical velocity at a given height
     def vy_squared(self, y):
-        y = format_input(y)
+        """
+        Returns vy² at a given vertical position y (meters), using energy conservation.
+        """
         return self.v0y**2 - 2 * self.g * (y - self.y0)
 
-    # -- Total speed squared at a given height --
+    # Total speed squared at a given height
     def v_total_squared(self, y):
-        y = format_input(y)
+        """
+        Returns total velocity squared v² at a given height y (meters), without using time.
+        """
         return self.v0**2 - 2 * self.g * (y - self.y0)
 
-    # -- Vertical position y(x) --
+    # Vertical position as a function of horizontal position
     def y_from_x(self, x):
-        x = format_input(x)
-        return self.y0 + tan(self.theta) * x - (self.g / (2 * self.v0**2 * cos(self.theta)**2)) * x ** 2
+        """
+        Returns the vertical position y as a function of horizontal position x (meters).
+        This is the trajectory equation y(x) for projectile motion.
+        """
+        return self.y0 + tan(self.theta) * x - (self.g / (2 * self.v0**2 * cos(self.theta)**2)) * x**2
 
 class CircularMotion:
     def __init__(self, *, r=None, T=None, v=None, v_func=None):
@@ -492,20 +570,20 @@ class CircularMotion:
 
         try:
             v_val = self.velocity()
-            v_str = fmt(v_val, "m/s")
+            v_str = "v = " + fmt(v_val, "m/s")
         except Exception:
             v_str = "v = ?"
 
         try:
             ac_val = self.centripetal_acceleration()
-            ac_str = fmt(ac_val, "m/s²")
+            ac_str = "centripetal acceleration = " + fmt(ac_val, "m/s²")
         except Exception:
             ac_str = "centripetal acceleration = ?"
 
         if self.v_func is not None:
             try:
                 at_val = self.tangential_acceleration(t=1.0)
-                at_str = fmt(at_val, "m/s²")
+                at_str = "tangential acceleration = " + fmt(at_val, "m/s²")
             except Exception:
                 at_str = "tangential acceleration = ?"
         else:

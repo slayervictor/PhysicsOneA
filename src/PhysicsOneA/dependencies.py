@@ -14,6 +14,5 @@ from uncertainties.umath import (
     tan,
     atan2,
     degrees,
-    pi,
 )
 

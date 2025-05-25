@@ -7,7 +7,7 @@ class Vector:
             self.vec = vec.getVector()
         elif isinstance(vec, list):
             # Convert list to a unumpy array with uncertainties
-            self.vec = array(vec)
+            self.vec = np.array(vec)
         else:
             raise TypeError("vec must be a list or a Vector instance")
 
@@ -15,7 +15,7 @@ class Vector:
         return self.vec
 
     def length(self):
-        return sqrt(usum(self.vec**2))
+        return sqrt(sum(self.vec**2))
 
     def __str__(self):
         return f"Vector: {self.vec}\nLength: {self.length()}"
@@ -32,8 +32,8 @@ class VectorPair:
         if not isinstance(vec1, (list, Vector)) or not isinstance(vec2, (list, Vector)):
             raise TypeError("vec1 and vec2 must be lists or Vector instances")
         
-        self.vec1 = array(vec1) if isinstance(vec1, list) else vec1.getVector()
-        self.vec2 = array(vec2) if isinstance(vec2, list) else vec2.getVector()
+        self.vec1 = np.array(vec1) if isinstance(vec1, list) else vec1.getVector()
+        self.vec2 = np.array(vec2) if isinstance(vec2, list) else vec2.getVector()
     
     def getPair(self):
         return (Vector(self.vec1.tolist()).getVector(), Vector(self.vec2.tolist()).getVector())
@@ -268,11 +268,12 @@ class Projectile:
         x = format_input(x)
         return self.y0 + tan(self.theta) * x - (self.g / (2 * self.v0 ** 2 * cos(self.theta) ** 2)) * x ** 2
     
+    # -- Plotting the trajectory --
     def plot_trajectory(self, steps=100):
         t_max = self.time_of_flight()
-        times = [i * t_max / steps for i in range(steps + 1)]
-        xs = [self.position(t)[0] for t in times]
-        ys = [self.position(t)[1] for t in times]
+        times = [i * nominal_value(t_max) / steps for i in range(steps + 1)]
+        xs = [nominal_value(self.position(t)[0]) for t in times]
+        ys = [nominal_value(self.position(t)[1]) for t in times]
 
         plt.plot(xs, ys)
         plt.xlabel("x (m)")
@@ -281,10 +282,11 @@ class Projectile:
         plt.grid()
         plt.show()
 
+    # -- Plotting y(t) --
     def plot_y_over_time(self, steps=100):
         t_max = self.time_of_flight_full()
-        times = [i * t_max / steps for i in range(steps + 1)]
-        ys = [self.position(t)[1] for t in times]
+        times = [i * nominal_value(t_max) / steps for i in range(steps + 1)]
+        ys = [nominal_value(self.position(t)[1]) for t in times]
 
         plt.plot(times, ys)
         plt.xlabel("Time (s)")
@@ -293,10 +295,11 @@ class Projectile:
         plt.grid()
         plt.show()
 
+    # -- Plotting x(t) --
     def plot_x_over_time(self, steps=100):
         t_max = self.time_of_flight_full()
-        times = [i * t_max / steps for i in range(steps + 1)]
-        xs = [self.position(t)[0] for t in times]
+        times = [i * nominal_value(t_max) / steps for i in range(steps + 1)]
+        xs = [nominal_value(self.position(t)[0]) for t in times]
 
         plt.plot(times, xs)
         plt.xlabel("Time (s)")
@@ -305,11 +308,12 @@ class Projectile:
         plt.grid()
         plt.show()
 
+    # -- Plotting velocity components --
     def plot_velocity_over_time(self, steps=100):
         t_max = self.time_of_flight_full()
-        times = [i * t_max / steps for i in range(steps + 1)]
-        vxs = [self.velocity(t)[0] for t in times]
-        vys = [self.velocity(t)[1] for t in times]
+        times = [i * nominal_value(t_max) / steps for i in range(steps + 1)]
+        vxs = [nominal_value(self.velocity(t)[0]) for t in times]
+        vys = [nominal_value(self.velocity(t)[1]) for t in times]
 
         plt.plot(times, vxs, label="vx(t)")
         plt.plot(times, vys, label="vy(t)")
@@ -320,59 +324,43 @@ class Projectile:
         plt.grid()
         plt.show()
 
-
+    # -- Return initial velocity vector --
     def get_initial_vector(self):
         return Vector([self.v0x, self.v0y])
-    
-    # Position as a function of time (horizontal)
+
+    # -- Horizontal position x(t) --
     def x(self, t):
-        """
-        Returns the horizontal position x(t) in meters at time t (seconds).
-        """
+        t = format_input(t)
         return self.v0x * t
 
-    # Position as a function of time (vertical)
+    # -- Vertical position y(t) --
     def y(self, t):
-        """
-        Returns the vertical position y(t) in meters at time t (seconds), accounting for gravity.
-        """
-        return self.v0y * t - 0.5 * self.g * t**2 + self.y0
+        t = format_input(t)
+        return self.v0y * t - 0.5 * self.g * t ** 2 + self.y0
 
-    # Horizontal velocity (constant)
+    # -- Constant horizontal velocity vx(t) --
     def vx(self, t):
-        """
-        Returns the horizontal velocity vx(t) in m/s, which is constant.
-        """
         return self.v0x
 
-    # Vertical velocity as a function of time
+    # -- Vertical velocity vy(t) --
     def vy(self, t):
-        """
-        Returns the vertical velocity vy(t) in m/s at time t (seconds), decreasing due to gravity.
-        """
+        t = format_input(t)
         return self.v0y - self.g * t
 
-    # Squared vertical velocity at a given height
+    # -- vy² at a given height --
     def vy_squared(self, y):
-        """
-        Returns vy² at a given vertical position y (meters), using energy conservation.
-        """
+        y = format_input(y)
         return self.v0y**2 - 2 * self.g * (y - self.y0)
 
-    # Total speed squared at a given height
+    # -- Total speed squared at a given height --
     def v_total_squared(self, y):
-        """
-        Returns total velocity squared v² at a given height y (meters), without using time.
-        """
+        y = format_input(y)
         return self.v0**2 - 2 * self.g * (y - self.y0)
 
-    # Vertical position as a function of horizontal position
+    # -- Vertical position y(x) --
     def y_from_x(self, x):
-        """
-        Returns the vertical position y as a function of horizontal position x (meters).
-        This is the trajectory equation y(x) for projectile motion.
-        """
-        return self.y0 + tan(self.theta) * x - (self.g / (2 * self.v0**2 * cos(self.theta)**2)) * x**2
+        x = format_input(x)
+        return self.y0 + tan(self.theta) * x - (self.g / (2 * self.v0**2 * cos(self.theta)**2)) * x ** 2
 
 class CircularMotion:
     def __init__(self, *, r=None, T=None, v=None, v_func=None):

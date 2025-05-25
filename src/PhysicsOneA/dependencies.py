@@ -4,20 +4,16 @@ import matplotlib.pyplot as plt
 
 from math import isclose
 
+import numpy as np
+
 from uncertainties import ufloat, UFloat, nominal_value
 from uncertainties.umath import (
     sqrt,
     sin,
     cos,
     tan,
-    atan2 ,
+    atan2,
     degrees,
+    pi,
 )
-from uncertainties.unumpy import (
-    nominal_values,
-    std_devs,
-    sqrt,
-    sum as usum,
-    array,
-    dot,
-)
+

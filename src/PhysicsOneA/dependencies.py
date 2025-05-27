@@ -1,4 +1,4 @@
-from typing import Union, Optional
+from typing import Union, Optional, Tuple
 
 import matplotlib.pyplot as plt
 

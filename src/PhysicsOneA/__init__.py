@@ -5,7 +5,7 @@ from .helpers import format_input, speed_converter, gravity, radian_to_degree, d
 from .Kinematics1D import solve_suvat, plot_distance_vs_time, plot_distance_vs_time_two_objects
 from .Kinematics2D import Vector, Time, VectorPair, Projectile, CircularMotion, ensure_vector, RelativeMotion
 from .NumericalMethods import NumericalSolver, simple_harmonic_oscillator, damped_harmonic_oscillator, driven_oscillator, projectile_with_drag, pendulum, orbital_motion, coupled_oscillators
-from .Rotation import rotational_kinetic_energy, combined_kinetic_energy, parallel_axis, rotational_energy_conservation, inertia_solid_cylinder, inertia_hollow_cylinder, inertia_hoop, inertia_sphere, inertia_spherical_shell, inertia_thin_rod_center, inertia_thin_rod_end
+from .Rotation import rotational_kinetic_energy, combined_kinetic_energy, parallel_axis, rotational_energy_conservation, inertia_solid_cylinder, inertia_hollow_cylinder, inertia_hoop, inertia_sphere, inertia_spherical_shell, inertia_thin_rod_center, inertia_thin_rod_end, torque, angular_acceleration, linear_from_angular, angular_from_linear, angular_velocity_conservation, angular_velocity_from_acceleration, angular_velocity_from_height
 from .WorkAndEnergy import work, spring_work, gravity_work, friction_work, kinetic_energy, delta_kinetic_energy, average_power, instantaneous_power, EnergySystem
 
 __all__ = [
@@ -18,6 +18,11 @@ __all__ = [
     "Vector",
     "VectorPair",
     "acceleration_of_two_blocks",
+    "angular_acceleration",
+    "angular_from_linear",
+    "angular_velocity_conservation",
+    "angular_velocity_from_acceleration",
+    "angular_velocity_from_height",
     "average_power",
     "calculate_from_angle",
     "calculate_from_sides",
@@ -51,6 +56,7 @@ __all__ = [
     "instantaneous_power",
     "kinetic_energy",
     "kinetic_friction",
+    "linear_from_angular",
     "net_force",
     "net_force_from_velocity_change",
     "normal_force_on_incline",
@@ -77,6 +83,7 @@ __all__ = [
     "tension_bc",
     "tension_in_rope",
     "three_block_acceleration",
+    "torque",
     "total_mechanical_energy",
     "unstretched_length_of_spring",
     "work"

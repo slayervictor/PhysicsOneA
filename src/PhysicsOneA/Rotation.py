@@ -153,3 +153,148 @@ def inertia_thin_rod_end(mass, length):
     m = format_input(mass)
     L = format_input(length)
     return (1/3) * m * L**2
+
+
+def torque(force, radius, angle_deg=90):
+    """
+    Calculates torque from a force.
+
+    Formula:
+        τ = R * F * sin(θ)
+
+    Parameters:
+        force (float or UFloat): Force in newtons
+        radius (float or UFloat): Lever arm in meters
+        angle_deg (float): Angle between R and F in degrees (default is 90°)
+
+    Returns:
+        UFloat: Torque in N·m
+    """
+    F = format_input(force)
+    R = format_input(radius)
+    theta = degree_to_radian(angle_deg)
+    return R * F * sin(theta)
+
+
+def angular_acceleration(torque, inertia):
+    """
+    Calculates angular acceleration using Newton's 2nd law for rotation.
+
+    Formula:
+        α = τ / I
+
+    Parameters:
+        torque (float or UFloat): Torque in N·m
+        inertia (float or UFloat): Moment of inertia in kg·m²
+
+    Returns:
+        UFloat: Angular acceleration in rad/s²
+    """
+    tau = format_input(torque)
+    I = format_input(inertia)
+    return tau / I
+
+
+def linear_from_angular(R, theta=None, omega=None, alpha=None):
+    """
+    Converts angular quantities to linear equivalents using:
+        x = Rθ, v = Rω, a = Rα
+
+    Parameters:
+        R (float or UFloat): Radius in meters
+        theta, omega, alpha (optional): Angular quantities
+
+    Returns:
+        UFloat: Corresponding linear quantity
+    """
+    R = format_input(R)
+    if theta is not None:
+        return R * format_input(theta)
+    elif omega is not None:
+        return R * format_input(omega)
+    elif alpha is not None:
+        return R * format_input(alpha)
+    else:
+        raise ValueError("Provide theta, omega, or alpha.")
+
+
+def angular_from_linear(R, x=None, v=None, a=None):
+    """
+    Converts linear quantities to angular equivalents using:
+        θ = x/R, ω = v/R, α = a/R
+
+    Parameters:
+        R (float or UFloat): Radius in meters
+        x, v, a (optional): Linear quantities
+
+    Returns:
+        UFloat: Corresponding angular quantity
+    """
+    R = format_input(R)
+    if x is not None:
+        return format_input(x) / R
+    elif v is not None:
+        return format_input(v) / R
+    elif a is not None:
+        return format_input(a) / R
+    else:
+        raise ValueError("Provide x, v, or a.")
+
+
+def angular_velocity_conservation(I1, omega1, I2):
+    """
+    Applies conservation of angular momentum:
+        I₁ω₁ = I₂ω₂ ⇒ ω₂ = I₁ω₁ / I₂
+
+    Parameters:
+        I1, I2 (float or UFloat): Moments of inertia
+        omega1 (float or UFloat): Initial angular velocity
+
+    Returns:
+        UFloat: Final angular velocity (rad/s)
+    """
+    I1 = format_input(I1)
+    omega1 = format_input(omega1)
+    I2 = format_input(I2)
+    return (I1 * omega1) / I2
+
+
+def angular_velocity_from_acceleration(alpha, time):
+    """
+    Calculates angular velocity from angular acceleration over time.
+
+    Formula:
+        ω = α * t (assuming ω₀ = 0)
+
+    Parameters:
+        alpha (float or UFloat): Angular acceleration (rad/s²)
+        time (float or UFloat): Time in seconds
+
+    Returns:
+        UFloat: Angular velocity (rad/s)
+    """
+    a = format_input(alpha)
+    t = format_input(time)
+    return a * t
+
+
+def angular_velocity_from_height(mass, height, inertia, g=gravity()):
+    """
+    Finds angular velocity ω when object falls from height and rotates.
+    Uses energy conservation:
+        mgh = 1/2 * I * ω² ⇒ ω = sqrt(2mgh / I)
+
+    Parameters:
+        mass (float or UFloat): Mass in kg
+        height (float or UFloat): Drop height in meters
+        inertia (float or UFloat): Moment of inertia
+        g (float or UFloat): Gravitational acceleration
+
+    Returns:
+        UFloat: Angular velocity in rad/s
+    """
+    m = format_input(mass)
+    h = format_input(height)
+    I = format_input(inertia)
+    g = format_input(g)
+    return sqrt((2 * m * g * h) / I)

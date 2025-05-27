@@ -1,34 +1,83 @@
-from .Kinematics2D import Vector, VectorPair, Projectile, CircularMotion, RelativeMotion
-
-from .Kinematics1D import solve_suvat, plot_distance_vs_time, plot_distance_vs_time_two_objects
-
-from .Forces import spring_force, kinetic_friction, static_friction_max,\
-general_drag, drag_force, unstretched_length_of_spring, drag_coefficient,\
-tension_ab, tension_bc, three_block_acceleration, stokes_drag, net_force,\
-normal_force_on_incline, inclined_plane_acceleration,\
-acceleration_of_two_blocks, tension_in_rope, net_force_from_velocity_change
-from .WorkAndEnergy import EnergySystem, instantaneous_power, average_power, delta_kinetic_energy, kinetic_energy, friction_work, gravity_work, spring_work, work
-
-from .NumericalMethods import NumericalSolver, simple_harmonic_oscillator,\
-damped_harmonic_oscillator, driven_oscillator, projectile_with_drag, pendulum,\
-orbital_motion, coupled_oscillators
-
-from .helpers import speed_converter, radian_to_degree, gravity,\
-degree_to_radian, calculate_from_angle, calculate_from_sides, format_input
-
 from . import dependencies
+from .EnergyConservation import total_mechanical_energy, energy_conservation, spring_compression_from_fall, speed_from_height_drop, spring_potential_energy, gravitational_potential_energy, kinetic_energy, delta_mechanical_energy, energy_conserved
+from .Forces import spring_force, kinetic_friction, static_friction_max, general_drag, drag_force, drag_coefficient, stokes_drag, net_force, net_force_from_velocity_change, acceleration_of_two_blocks, tension_in_rope, inclined_plane_acceleration, normal_force_on_incline, three_block_acceleration, tension_bc, tension_ab, unstretched_length_of_spring
+from .helpers import format_input, speed_converter, gravity, radian_to_degree, degree_to_radian, calculate_from_angle, calculate_from_sides
+from .Kinematics1D import solve_suvat, plot_distance_vs_time, plot_distance_vs_time_two_objects
+from .Kinematics2D import Vector, Time, VectorPair, Projectile, CircularMotion, ensure_vector, RelativeMotion
+from .NumericalMethods import NumericalSolver, simple_harmonic_oscillator, damped_harmonic_oscillator, driven_oscillator, projectile_with_drag, pendulum, orbital_motion, coupled_oscillators
+from .Rotation import rotational_kinetic_energy, combined_kinetic_energy, parallel_axis, rotational_energy_conservation, inertia_solid_cylinder, inertia_hollow_cylinder, inertia_hoop, inertia_sphere, inertia_spherical_shell, inertia_thin_rod_center, inertia_thin_rod_end
+from .WorkAndEnergy import work, spring_work, gravity_work, friction_work, kinetic_energy, delta_kinetic_energy, average_power, instantaneous_power, EnergySystem
 
-__all__ = ["dependencies", "Vector", "RelativeMotion", "calculate_from_angle",
-           "calculate_from_sides", "VectorPair", "solve_suvat", "format_input",
-           "speed_converter", "Projectile", "radian_to_degree", "gravity",
-           "degree_to_radian", "CircularMotion", "plot_distance_vs_time",
-           "plot_distance_vs_time_two_objects", "spring_force", "kinetic_friction",
-           "static_friction_max", "general_drag", "drag_force", "drag_coefficient",
-           "stokes_drag", "net_force" , "acceleration_of_two_blocks", "tension_in_rope",
-           "net_force_from_velocity_change", "inclined_plane_acceleration", "normal_force_on_incline",
-           "three_block_acceleration","tension_bc", "tension_ab", "unstretched_length_of_spring",
-            "NumericalSolver", "simple_harmonic_oscillator", "damped_harmonic_oscillator",
-          "driven_oscillator", "projectile_with_drag", "pendulum", "orbital_motion",
-          "coupled_oscillators","instantaneous_power", "average_power", "EnergySystem", "delta_kinetic_energy",
-           "kinetic_energy", "friction_work", "gravity_work", "spring_work", "work"
-          ]
+__all__ = [
+    "CircularMotion",
+    "EnergySystem",
+    "NumericalSolver",
+    "Projectile",
+    "RelativeMotion",
+    "Time",
+    "Vector",
+    "VectorPair",
+    "acceleration_of_two_blocks",
+    "average_power",
+    "calculate_from_angle",
+    "calculate_from_sides",
+    "combined_kinetic_energy",
+    "coupled_oscillators",
+    "damped_harmonic_oscillator",
+    "degree_to_radian",
+    "delta_kinetic_energy",
+    "delta_mechanical_energy",
+    "dependencies",
+    "drag_coefficient",
+    "drag_force",
+    "driven_oscillator",
+    "energy_conservation",
+    "energy_conserved",
+    "ensure_vector",
+    "format_input",
+    "friction_work",
+    "general_drag",
+    "gravitational_potential_energy",
+    "gravity",
+    "gravity_work",
+    "inclined_plane_acceleration",
+    "inertia_hollow_cylinder",
+    "inertia_hoop",
+    "inertia_solid_cylinder",
+    "inertia_sphere",
+    "inertia_spherical_shell",
+    "inertia_thin_rod_center",
+    "inertia_thin_rod_end",
+    "instantaneous_power",
+    "kinetic_energy",
+    "kinetic_friction",
+    "net_force",
+    "net_force_from_velocity_change",
+    "normal_force_on_incline",
+    "orbital_motion",
+    "parallel_axis",
+    "pendulum",
+    "plot_distance_vs_time",
+    "plot_distance_vs_time_two_objects",
+    "projectile_with_drag",
+    "radian_to_degree",
+    "rotational_energy_conservation",
+    "rotational_kinetic_energy",
+    "simple_harmonic_oscillator",
+    "solve_suvat",
+    "speed_converter",
+    "speed_from_height_drop",
+    "spring_compression_from_fall",
+    "spring_force",
+    "spring_potential_energy",
+    "spring_work",
+    "static_friction_max",
+    "stokes_drag",
+    "tension_ab",
+    "tension_bc",
+    "tension_in_rope",
+    "three_block_acceleration",
+    "total_mechanical_energy",
+    "unstretched_length_of_spring",
+    "work"
+]

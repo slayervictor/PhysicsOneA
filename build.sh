@@ -2,6 +2,7 @@
 
 set -e
 
+python importhandler.py
 rm -rf build/ dist/ *.egg-info/
 python -m build
 ls -la dist/

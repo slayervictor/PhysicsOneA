@@ -1,9 +1,13 @@
 LICENSE
 README.md
 pyproject.toml
+src/PhysicsOneA/EnergyConservation.py
 src/PhysicsOneA/Forces.py
 src/PhysicsOneA/Kinematics1D.py
 src/PhysicsOneA/Kinematics2D.py
+src/PhysicsOneA/NumericalMethods.py
+src/PhysicsOneA/Rotation.py
+src/PhysicsOneA/WorkAndEnergy.py
 src/PhysicsOneA/__init__.py
 src/PhysicsOneA/dependencies.py
 src/PhysicsOneA/helpers.py
